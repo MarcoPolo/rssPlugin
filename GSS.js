@@ -1,29 +1,28 @@
 console.log('hello!!');
 
-var GSS = {}
 //var rssURL = 'http://feeds2.feedburner.com/PitchforkBestNewTracks' 
 var rssURL = 'http://hypem.com/feed/popular/3day/1/feed.xml' 
 var rssURL = 'http://hypem.com/feed/time/today/1/feed.xml'
-GSS.songs = []
-GSS.SongIDs = []
 
 
+getRSS(rssURL);
 
-function getRSS(){
+setTimeout(function () {injectMenu(); } , 2e3)
+
+function getRSS(rssURL){
+    GSS = {}
+    GSS.songs = []
+    GSS.SongIDs = []
     $.getJSON('https://ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=100&key=ABQIAAAAuIlbOmUd3gJTNVDSvX8ZBBThVXKRlugNJ0FXtFSdeFPX98YKrhQMO67lQJHw2mO0gu2r-chAP3vHeg&q='+rssURL+'&callback=?', function(resp){
-        console.log(resp);
+        //console.log(resp);
         RSS = resp.responseData.feed;
-        GSS.rssTitle = RSS.title;
+        GSS.title = RSS.title;
 
         buildSearchTerms(RSS);
     })
 }
 
 function makeComparable(name){
-    if(name.indexOf('&amp') != -1){
-        name = name.replace(' &amp','');
-    }
-
     name = name.replace(/[^a-zA-Z 0-9]+/g,'').toLowerCase();
 
     return name;
@@ -33,9 +32,11 @@ function searchForTerms(searchTerms){
 	searchTerms.map(function(term){
         searchTerm = (term[0]) + ' ' + term[1];
         GS.service.getSearchResultsEx(searchTerm, true, null, function(resp){
-            console.log(searchTerm);
-            console.log(resp.result);
+            //console.log(searchTerm);
+            //console.log(resp.result);
             GSS.songs.push({'artist':makeComparable(term[0]), 'songname':term[1], 'results':resp.result, songInfo:''});
+
+            checkLastResult();
         }, null)
 
 
@@ -45,40 +46,34 @@ function searchForTerms(searchTerms){
 }
 
 function buildSearchTerms(RSS){
-    console.log('starting')
 	var a = RSS.entries.map(function(entry){
-        console.log('innn');
 		searchTerms = [];
-		console.log(entry.title.replace('"',''));
+		//console.log(entry.title.replace('"',''));
 		searchTerms.push(entry.title.replace(/"/g,'').split(' - '));
 
 		searchForTerms(searchTerms);
 
-        console.log('starting')
 	});
 
-    console.log('done');
-
-    checkResults();
-    
 }
 
-function addRSSToQueue(){
-	GSS.songs.map(function(song){
-            if (typeof song.songInfo.SongID != 'undefined'){
-                console.log('adding ', song.songname, ' to queue');
-                console.log('with song id', song.songInfo.SongID);
-                GS.player.addSongsToQueueAt(song.songInfo.SongID,'0',false,'');
-            }
-    });
+
+function checkLastResult(){
+    var song = GSS.songs[GSS.songs.length-1];
+    for (var resultIndex = 0; resultIndex<song.results.length; resultIndex++){
+        var result = song.results[resultIndex]; 
+        if((makeComparable(result.ArtistName) == makeComparable(song.artist)) && (makeComparable(result.SongName) == makeComparable(song.songname)) ){
+            console.log('found the correct result and it is' + result.SongID);
+            song.songInfo = result;
+            GSS.SongIDs.push(result.SongID);
+            break;
+        }else{
+            console.error('Did not find ', song.songname, ' by ' , song.artist);
+        }
+    }
 }
 
-function createRSSPlaylist(){
-    var playlistID;
 
-    GS.service.createPlaylist(GSS.title, GSS.SongIDs, 'RSS playlist', function(result, req){playlistID=result},null)
-    console.log(playlistID);
-}
 
 
 function checkResults(){
@@ -95,7 +90,77 @@ function checkResults(){
         }
     });
 
-    GSS.songs.map(function(song) { GSS.SongIDs.push(song.songInfo.SongID) });
+    //GSS.songs.map(function(song) { GSS.SongIDs.push(song.songInfo.SongID) });
 }
 
-getRSS()
+function addRSSToQueue(){
+	GSS.songs.map(function(song){
+            if (typeof song.songInfo.SongID != 'undefined'){
+                console.log('adding ', song.songname, ' to queue');
+                console.log('with song id', song.songInfo.SongID);
+                GS.player.addSongsToQueueAt(song.songInfo.SongID,'0',false,'');
+            }
+    });
+}
+
+function createRSSPlaylist(){
+
+    GS.service.createPlaylist(GSS.title, GSS.SongIDs, '', function(result, req){console.log('result',result, 'req',req); var playlistID=result; injectRSSPlaylist(playlistID);},null)
+}
+
+function injectRSSPlaylist(playlistID){
+    console.log('playlist', playlistID);
+
+    var playlistCSS =  '<li class="sidebar_link sidebar_playlist playlist sidebar_playlist_own" rel="' + playlistID + '" title="RSSPlaylist"> \
+                   <a href="#/playlist/RSSPlaylist/' +  playlistID + '"><span class="icon remove">  \
+                   </span><span class="icon"></span><span class="label ellipsis">' + GSS.title + '</span></a></li>';
+
+
+    $('#sidebar_playlists').append(playlistCSS);
+
+    $('[title="RSSPlaylist"] .icon').css('background-image', 'url("http://hypem.com/favicon.png")');
+    $('[title="RSSPlaylist"] .icon').css('background-position', '0 0')
+}
+
+
+
+function injectMenu(){
+    var style = document.createElement('style');
+    style.innerText = '#gs_dropdown { display:none; background:#fff; color:#000; width:225px; padding:5px; -moz-border-radius:3px 0 3px 3px; -webkit-border-radius:3px 0 3px 3px; margin-top:-4px; border:1px solid rgba(0,0,0,.25); border-top:none; background-clip:padding-box; }';
+    style.innerText += '#gs_gsync.active { margin:1px 1px 0 0 !important; }';
+    style.innerText += '#gs_synced, #gs_unsynced { padding:10px; margin-bottom:10px; font-weight:bold; text-align:center; font-size:11px; -moz-border-radius:2px; -webkit-border-radius:2px; }';
+    style.innerText += '#gs_synced { display:none; background:#d8ebf8; color:#3c7abe; } #gs_unsynced { display:block; background:#eee; } #gs_synced span { color:#306399; }';
+    style.innerText += '#gs_leave { display:block; color:rgba(60, 122, 190, 0.5); text-align:center; font:normal 10px Arial, sans-serif; margin:6px 0 -2px 0; } #gs_leave:hover { color:rgb(60, 122, 190); text-decoration:underline; }';
+    style.innerText += '#gs_join label { font-size:11px; } #gs_join input { width:215px; font-size:13px; border:1px solid #c2c1c1; border-top:1px solid #a8a8a8; padding:5px 4px; -moz-border-radius:2px; -moz-box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); -webkit-border-radius:2px; -webkit-box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); }';
+    document.body.appendChild(style);
+
+    var syncMenu;
+    syncMenu =  '<li class="last">';
+    syncMenu += '<div id="GSS" class="btn btn_style1"><span id="gs_label">GSS</span></div>';
+    syncMenu += '<div id="gs_dropdown" class="dropdown right">';
+    syncMenu += '   <div id="gs_synced">Synced with group <span id="gs_group"></span><a id="gs_leave">Leave group</a></div>';
+    syncMenu += '   <form id="gs_join">';
+    syncMenu += '       <label for="groupID">Add an RSS feed: </label><input type="text" name="groupID" />';
+    syncMenu += '   </form>';
+    syncMenu += '</div></li>';
+
+    $('#userOptions').append(syncMenu);
+     $('#GSS').click(function() {
+         $('#gs_dropdown').toggle();
+         $(this).toggleClass('active'); 
+     });
+
+     $('#gs_join').submit(function() {
+        var rssURL  = $('input', this).val();
+        getRSS(rssURL);
+        setTimeout(function (){createRSSPlaylist();}, 2e3)
+
+        return false;
+     });
+
+                                                                                 
+}
+
+
+
+
