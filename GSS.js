@@ -13,10 +13,13 @@ setTimeout(function () {injectMenu(); } , 2e3)
 
 function checkExistingFeeds(){
     //gssfeeds is an array of RSS titles
-    if (typeof localStorage['GSSFeeds'] != 'undefined') {
+    if (localStorage['GSSFeeds'] != '') {
         var GSSFeeds = localStorage['GSSFeeds'].split(',');
-        for (var i=0; i < GSSFeeds.length; i++){
-            injectRSSPlaylist(localStorage[GSSFeeds[i]], GSSFeeds[i]);
+        for (var i=1; i < GSSFeeds.length; i++){
+            var playlistID = localStorage[GSSFeeds[i]];
+            injectRSSPlaylist(playlistID, GSSFeeds[i]);
+
+
         }
     }
 }
@@ -35,6 +38,7 @@ function getRSS(rssURL){
 }
 
 function makeComparable(name){
+    name.replace('&amp','&');
     name = name.toLowerCase();
 
     return name;
@@ -83,6 +87,14 @@ function checkLastResult(){
             console.error('Did not find ', song.songname, ' by ' , song.artist);
         }
     }
+
+    if(GSS.songs.length == RSS.entries.length){
+        console.log('done');
+        $('#GSSloading').remove();
+        $('#gs_join input').val('');
+        $('#gs_join input').show();
+    }
+
 }
 
 
@@ -154,6 +166,8 @@ function injectRSSPlaylist(playlistID, title){
 
     $('[title="RSSPlaylist"] .remove').css('background-image', '');
     $('[title="RSSPlaylist"] .remove').css('background-position' , '');
+
+    injectRemoveFeed(playlistID);
 }
 
 
@@ -167,6 +181,7 @@ function injectMenu(){
     style.innerText += '#gs_synced { display:none; background:#d8ebf8; color:#3c7abe; } #gs_unsynced { display:block; background:#eee; } #gs_synced span { color:#306399; }';
     style.innerText += '#gs_leave { display:block; color:rgba(60, 122, 190, 0.5); text-align:center; font:normal 10px Arial, sans-serif; margin:6px 0 -2px 0; } #gs_leave:hover { color:rgb(60, 122, 190); text-decoration:underline; }';
     style.innerText += '#gs_join label { font-size:11px; } #gs_join input { width:215px; font-size:13px; border:1px solid #c2c1c1; border-top:1px solid #a8a8a8; padding:5px 4px; -moz-border-radius:2px; -moz-box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); -webkit-border-radius:2px; -webkit-box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); }';
+    style.innerText += '#GSSloading { display:block; margin-right:auto; margin-left:auto; }';
     document.body.appendChild(style);
 
     var syncMenu;
@@ -185,12 +200,38 @@ function injectMenu(){
          $(this).toggleClass('active'); 
      });
 
-     $('#gs_join').submit(function() {
+    $('#gs_join').submit(function() {
         var rssURL  = $('input', this).val();
         getRSS(rssURL);
-        setTimeout(function (){createRSSPlaylist();}, 2e3)
+        setTimeout(function (){createRSSPlaylist();}, 2e3);
+        $('input',this).hide();
+        $('#gs_join').append('<img id="GSSloading" src="http://i.imgur.com/xRiVV.gif"/>');
+
 
         return false;
+     });
+     
+}
+
+function injectRemoveFeed(playlistID){
+     $('[rel="'+playlistID+'"] .remove').click( function(){
+         //find the title of the removed feed
+         var titleToBeRemoved = $(this).parent().children('.label').text();
+
+         //remove the title from the localStorage
+
+         var GSSFeeds = localStorage['GSSFeeds'].split(',');
+         indexOfTitleToBeRemoved = GSSFeeds.indexOf(titleToBeRemoved);
+
+         if (indexOfTitleToBeRemoved != -1) {
+             console.log('removing', titleToBeRemoved);
+             GSSFeeds.splice(indexOfTitleToBeRemoved, 1);
+             localStorage['GSSFeeds'] = GSSFeeds;
+         } else {
+             console.error('could not find the title in the local storage')
+         }
+
+         $(this).parent().remove();
      });
 }
 
