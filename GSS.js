@@ -1,13 +1,25 @@
 console.log('hello!!');
 
 //var rssURL = 'http://feeds2.feedburner.com/PitchforkBestNewTracks' 
-var rssURL = 'http://hypem.com/feed/popular/3day/1/feed.xml' 
-var rssURL = 'http://hypem.com/feed/time/today/1/feed.xml'
+
+if (typeof localStorage['GSSFeeds'] == 'undefined') {
+    localStorage['GSSFeeds'] == []
+}
 
 
-getRSS(rssURL);
 
 setTimeout(function () {injectMenu(); } , 2e3)
+
+
+function checkExistingFeeds(){
+    //gssfeeds is an array of RSS titles
+    if (typeof localStorage['GSSFeeds'] != 'undefined') {
+        var GSSFeeds = localStorage['GSSFeeds'].split(',');
+        for (var i=0; i < GSSFeeds.length; i++){
+            injectRSSPlaylist(localStorage[GSSFeeds[i]], GSSFeeds[i]);
+        }
+    }
+}
 
 function getRSS(rssURL){
     GSS = {}
@@ -23,7 +35,7 @@ function getRSS(rssURL){
 }
 
 function makeComparable(name){
-    name = name.replace(/[^a-zA-Z 0-9]+/g,'').toLowerCase();
+    name = name.toLowerCase();
 
     return name;
 }
@@ -105,26 +117,49 @@ function addRSSToQueue(){
 
 function createRSSPlaylist(){
 
-    GS.service.createPlaylist(GSS.title, GSS.SongIDs, '', function(result, req){console.log('result',result, 'req',req); var playlistID=result; injectRSSPlaylist(playlistID);},null)
+
+    GS.service.createPlaylist(GSS.title, GSS.SongIDs, '', function(result, req){
+        console.log('result',result, 'req',req);
+        var playlistID=result;
+        injectRSSPlaylist(playlistID, GSS.title);
+
+        //use local storage
+        
+        //push the title of the RSS into the playlist
+        if (typeof localStorage['GSSFeeds'] == 'undefined') {
+            localStorage['GSSFeeds'] = GSS.title;
+        }else{
+            var GSSFeeds = localStorage['GSSFeeds'].split(',');
+            GSSFeeds.push(GSS.title);
+            localStorage['GSSFeeds'] = GSSFeeds;
+        }
+        localStorage[GSS.title]=playlistID;
+    },null);
 }
 
-function injectRSSPlaylist(playlistID){
+function injectRSSPlaylist(playlistID, title){
     console.log('playlist', playlistID);
+    console.log('title', title);
 
-    var playlistCSS =  '<li class="sidebar_link sidebar_playlist playlist sidebar_playlist_own" rel="' + playlistID + '" title="RSSPlaylist"> \
-                   <a href="#/playlist/RSSPlaylist/' +  playlistID + '"><span class="icon remove">  \
-                   </span><span class="icon"></span><span class="label ellipsis">' + GSS.title + '</span></a></li>';
+    var playlistCSS =  '<li class="sidebar_link sidebar_playlist playlist sidebar_playlist_own" rel="' + playlistID + '" title="RSSPlaylist">'
+    playlistCSS+=      '<a href="#/playlist/RSSPlaylist/' +  playlistID + '"><span class="icon remove">'
+    playlistCSS+=      '</span><span class="icon"></span><span class="label ellipsis">' + title + '</span></a></li>';
 
 
     $('#sidebar_playlists').append(playlistCSS);
 
+    //todo fix thix to be more dynamic
     $('[title="RSSPlaylist"] .icon').css('background-image', 'url("http://hypem.com/favicon.png")');
-    $('[title="RSSPlaylist"] .icon').css('background-position', '0 0')
+    $('[title="RSSPlaylist"] .icon').css('background-position', '0 0');
+
+    $('[title="RSSPlaylist"] .remove').css('background-image', '');
+    $('[title="RSSPlaylist"] .remove').css('background-position' , '');
 }
 
 
 
 function injectMenu(){
+    checkExistingFeeds();
     var style = document.createElement('style');
     style.innerText = '#gs_dropdown { display:none; background:#fff; color:#000; width:225px; padding:5px; -moz-border-radius:3px 0 3px 3px; -webkit-border-radius:3px 0 3px 3px; margin-top:-4px; border:1px solid rgba(0,0,0,.25); border-top:none; background-clip:padding-box; }';
     style.innerText += '#gs_gsync.active { margin:1px 1px 0 0 !important; }';
@@ -157,8 +192,6 @@ function injectMenu(){
 
         return false;
      });
-
-                                                                                 
 }
 
 
