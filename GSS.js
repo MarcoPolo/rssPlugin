@@ -1,20 +1,40 @@
-console.log('hello!!');
+/*;(function(modules) {
 
-//var rssURL = 'http://feeds2.feedburner.com/PitchforkBestNewTracks' 
-
-if (typeof localStorage['GSSFeeds'] == 'undefined') {
-    localStorage['GSSFeeds'] == []
-}
+    modules['GSS'] = {
+          'author': 'Marco Munizaga'
+        , 'name': 'Grooveshark RSS'
+        , 'description': 'Import RSS feeds into Grooveshark'
+        , 'isEnabled': true
+        , 'style': false
+        , 'setup': false
+        , 'construct': construct
+        , 'destruct': destruct
+    };
+*/
 
 
 
 setTimeout(function () {injectMenu(); } , 2e3)
 
+function construct(){
+    
+    if (typeof localStorage['GSSFeeds'] == 'undefined') {
+        localStorage['GSSFeeds'] == []
+    }
+
+    injectMenu();
+}
+
+function destruct(){
+    $('#GSS').remove();
+    $('.gss').remove();
+}
+
 
 function checkExistingFeeds(){
     //gssfeeds is an array of RSS titles
     if (localStorage['GSSFeeds'] != '') {
-        var GSSFeeds = localStorage['GSSFeeds'].split(',');
+        var GSSFeeds = localStorage['GSSFeeds'].split('|#|');
         for (var i=1; i < GSSFeeds.length; i++){
             var playlistID = localStorage[GSSFeeds[i]];
             injectRSSPlaylist(playlistID, GSSFeeds[i]);
@@ -141,9 +161,10 @@ function createRSSPlaylist(){
         if (typeof localStorage['GSSFeeds'] == 'undefined') {
             localStorage['GSSFeeds'] = GSS.title;
         }else{
-            var GSSFeeds = localStorage['GSSFeeds'].split(',');
+            var delimiter = '|#|'
+            var GSSFeeds = localStorage['GSSFeeds'].split(delimiter);
             GSSFeeds.push(GSS.title);
-            localStorage['GSSFeeds'] = GSSFeeds;
+            localStorage['GSSFeeds'] = GSSFeeds.join(delimiter);
         }
         localStorage[GSS.title]=playlistID;
     },null);
@@ -153,7 +174,7 @@ function injectRSSPlaylist(playlistID, title){
     console.log('playlist', playlistID);
     console.log('title', title);
 
-    var playlistCSS =  '<li class="sidebar_link sidebar_playlist playlist sidebar_playlist_own" rel="' + playlistID + '" title="RSSPlaylist">'
+    var playlistCSS =  '<li class="sidebar_link sidebar_playlist playlist sidebar_playlist_own gss" rel="' + playlistID + '" title="' + title + '">'
     playlistCSS+=      '<a href="#/playlist/RSSPlaylist/' +  playlistID + '"><span class="icon remove">'
     playlistCSS+=      '</span><span class="icon"></span><span class="label ellipsis">' + title + '</span></a></li>';
 
@@ -161,11 +182,11 @@ function injectRSSPlaylist(playlistID, title){
     $('#sidebar_playlists').append(playlistCSS);
 
     //todo fix thix to be more dynamic
-    $('[title="RSSPlaylist"] .icon').css('background-image', 'url("http://hypem.com/favicon.png")');
-    $('[title="RSSPlaylist"] .icon').css('background-position', '0 0');
+    $('[title="' + title + '"] .icon').css('background-image', 'url("http://hypem.com/favicon.png")');
+    $('[title="' + title + '"] .icon').css('background-position', '0 0');
 
-    $('[title="RSSPlaylist"] .remove').css('background-image', '');
-    $('[title="RSSPlaylist"] .remove').css('background-position' , '');
+    $('[title="' + title + '"] .remove').css('background-image', '');
+    $('[title="' + title + '"] .remove').css('background-position' , '');
 
     injectRemoveFeed(playlistID);
 }
@@ -215,18 +236,19 @@ function injectMenu(){
 
 function injectRemoveFeed(playlistID){
      $('[rel="'+playlistID+'"] .remove').click( function(){
+         var delimiter = '|#|';
          //find the title of the removed feed
          var titleToBeRemoved = $(this).parent().children('.label').text();
 
          //remove the title from the localStorage
 
-         var GSSFeeds = localStorage['GSSFeeds'].split(',');
+         var GSSFeeds = localStorage['GSSFeeds'].split(delimiter);
          indexOfTitleToBeRemoved = GSSFeeds.indexOf(titleToBeRemoved);
 
          if (indexOfTitleToBeRemoved != -1) {
              console.log('removing', titleToBeRemoved);
              GSSFeeds.splice(indexOfTitleToBeRemoved, 1);
-             localStorage['GSSFeeds'] = GSSFeeds;
+             localStorage['GSSFeeds'] = GSSFeeds.join(delimiter)
          } else {
              console.error('could not find the title in the local storage')
          }
@@ -236,5 +258,5 @@ function injectRemoveFeed(playlistID){
 }
 
 
-
+//})(ges.modules.modules);
 
