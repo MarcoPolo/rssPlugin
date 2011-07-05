@@ -64,6 +64,16 @@ function makeComparable(name){
     return name;
 }
 
+function buildSearchTerms(RSS){
+	var a = RSS.entries.map(function(entry){
+		searchTerms = [];
+		//console.log(entry.title.replace('"',''));
+		searchTerms.push(entry.title.replace(/"/g,'').split(' - '));
+
+		searchForTerms(searchTerms);
+	});
+}
+
 function searchForTerms(searchTerms){
 	searchTerms.map(function(term){
         searchTerm = (term[0]) + ' ' + term[1];
@@ -74,40 +84,26 @@ function searchForTerms(searchTerms){
 
             checkLastResult();
         }, null)
-
-
-
 	});
-
 }
-
-function buildSearchTerms(RSS){
-	var a = RSS.entries.map(function(entry){
-		searchTerms = [];
-		//console.log(entry.title.replace('"',''));
-		searchTerms.push(entry.title.replace(/"/g,'').split(' - '));
-
-		searchForTerms(searchTerms);
-
-	});
-
-}
-
 
 function checkLastResult(){
     var song = GSS.songs[GSS.songs.length-1];
+    var foundSong = false;
     for (var resultIndex = 0; resultIndex<song.results.length; resultIndex++){
         var result = song.results[resultIndex]; 
         if((makeComparable(result.ArtistName) == makeComparable(song.artist)) && (makeComparable(result.SongName) == makeComparable(song.songname)) ){
             console.log('found the correct result and it is' + result.SongID);
             song.songInfo = result;
             GSS.SongIDs.push(result.SongID);
+            foundSoung = true;
             break;
         }else{
             console.error('Did not find ', song.songname, ' by ' , song.artist);
         }
     }
 
+    //load this when The search has finished
     if(GSS.songs.length == RSS.entries.length){
         console.log('done');
         $('#GSSloading').remove();
@@ -116,9 +112,6 @@ function checkLastResult(){
     }
 
 }
-
-
-
 
 function checkResults(){
     GSS.songs.map(function(song){
@@ -148,7 +141,6 @@ function addRSSToQueue(){
 }
 
 function createRSSPlaylist(){
-
 
     GS.service.createPlaylist(GSS.title, GSS.SongIDs, '', function(result, req){
         console.log('result',result, 'req',req);
@@ -256,7 +248,6 @@ function injectRemoveFeed(playlistID){
          $(this).parent().remove();
      });
 }
-
 
 //})(ges.modules.modules);
 
