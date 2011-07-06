@@ -39,6 +39,7 @@ function checkExistingFeeds(){
             var playlistID = localStorage[GSSFeeds[i]];
             injectRSSPlaylist(playlistID, GSSFeeds[i]);
 
+
         }
     }
 }
@@ -110,6 +111,23 @@ function checkLastResult(){
         $('#gs_join input').show();
     }
 
+}
+
+function checkResults(){
+    GSS.songs.map(function(song){
+        if(typeof song.results[0] != 'undefined' ){
+            song.results.map(function(result){
+                if((makeComparable(result.ArtistName) == makeComparable(song.artist)) && (makeComparable(result.SongName) == makeComparable(song.songname)) ){
+                    console.log('found the correct result and it is' + result);
+                    song.songInfo = result;
+                }else{
+                    console.error('Did not find ', song.songname, ' by ' , song.artist);
+                }
+            });
+        }
+    });
+
+    //GSS.songs.map(function(song) { GSS.SongIDs.push(song.songInfo.SongID) });
 }
 
 function addRSSToQueue(){
@@ -209,14 +227,10 @@ function injectMenu(){
 }
 
 function injectRemoveFeed(playlistID){
-    //this is the code that will run when the user clicks the remove icon
      $('[rel="'+playlistID+'"] .remove').click( function(){
          var delimiter = '|#|';
          //find the title of the removed feed
          var titleToBeRemoved = $(this).parent().children('.label').text();
-
-         //remove the playlist from Grooveshark
-         GS.service.deletePlaylist(playlistID, titleToBeRemoved, null, null);
 
          //remove the title from the localStorage
 
