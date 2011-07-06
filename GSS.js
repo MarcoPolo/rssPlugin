@@ -14,7 +14,7 @@
 
 
 
-setTimeout(function () {injectMenu(); } , 2e3)
+injectMenu()
 
 function construct(){
     
