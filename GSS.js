@@ -38,19 +38,23 @@ function checkExistingFeeds(){
         for (var i=1; i < GSSFeeds.length; i++){
             var playlistID = localStorage[GSSFeeds[i]];
             injectRSSPlaylist(playlistID, GSSFeeds[i]);
-
+            refreshPlaylist(playlistID)
         }
     }
 }
 
 function getRSS(rssURL){
-    GSS = {}
-    GSS.songs = []
-    GSS.SongIDs = []
+    GSS = {};
+    GSS.songs = [];
+    GSS.SongIDs = [];
     $.getJSON('https://ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=100&key=ABQIAAAAuIlbOmUd3gJTNVDSvX8ZBBThVXKRlugNJ0FXtFSdeFPX98YKrhQMO67lQJHw2mO0gu2r-chAP3vHeg&q='+rssURL+'&callback=?', function(resp){
         //console.log(resp);
         RSS = resp.responseData.feed;
         GSS.title = RSS.title;
+
+        
+        //This will be used to check for updates
+        GSS.rssData = [RSS.feedUrl].concat(RSS.entries.map(function(song){return song.title})).join(delimeter);
 
         buildSearchTerms(RSS);
     })
@@ -141,7 +145,8 @@ function createRSSPlaylist(){
             GSSFeeds.push(GSS.title);
             localStorage['GSSFeeds'] = GSSFeeds.join(delimiter);
         }
-        localStorage[GSS.title]=playlistID;
+        localStorage[GSS.title] = playlistID;
+        localStorage[playlistID] = GSS.rssData;
     },null);
 }
 
@@ -166,7 +171,27 @@ function injectRSSPlaylist(playlistID, title){
     injectRemoveFeed(playlistID);
 }
 
+//This will read the rss entries from local storage and see if there has been a change, if so it will update the playlist
+function refreshPlaylist(playlistID){
+    var delimeter = '|#|';
+    var t = setInterval(function(){
+        var oldData = localStorage[playlistID]; 
+        var rssURL = oldData[0];
+        var newData;
 
+        $.getJSON('https://ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=100&key=ABQIAAAAuIlbOmUd3gJTNVDSvX8ZBBThVXKRlugNJ0FXtFSdeFPX98YKrhQMO67lQJHw2mO0gu2r-chAP3vHeg&q='+rssURL+'&callback=?', function(resp){
+            var RSS = resp.responseData.feed;
+            newData = [RSS.feedUrl].concat(RSS.entries.map(function(song){return song.title})).join(delimeter);
+            
+            if ( newData != oldData ) {
+                updatePlaylist(playlistID);
+            }
+        });
+    }, 10e3);
+}
+
+function updatePlaylist(playlistID){
+}
 
 function injectMenu(){
     checkExistingFeeds();
@@ -208,37 +233,38 @@ function injectMenu(){
      
 }
 
+function removePlaylist(playlistID, titleToBeRemoved){
+     var delimiter = '|#|';
+     //find the title of the removed feed
+
+     //remove the playlist from Grooveshark
+     GS.service.deletePlaylist(playlistID, titleToBeRemoved, null, null);
+
+     //remove the title from the localStorage
+
+     var GSSFeeds = localStorage['GSSFeeds'].split(delimiter);
+     indexOfTitleToBeRemoved = GSSFeeds.indexOf(titleToBeRemoved);
+
+     if (indexOfTitleToBeRemoved != -1) {
+         console.log('removing', titleToBeRemoved);
+         GSSFeeds.splice(indexOfTitleToBeRemoved, 1);
+         localStorage['GSSFeeds'] = GSSFeeds.join(delimiter)
+     } else {
+         console.error('could not find the title in the local storage')
+     }
+}
+
 function injectRemoveFeed(playlistID){
     //this is the code that will run when the user clicks the remove icon
      $('[rel="'+playlistID+'"] .remove').click( function(){
-         var delimiter = '|#|';
-         //find the title of the removed feed
+
          var titleToBeRemoved = $(this).parent().children('.label').text();
-
-         //remove the playlist from Grooveshark
-         GS.service.deletePlaylist(playlistID, titleToBeRemoved, null, null);
-
-         //remove the title from the localStorage
-
-         var GSSFeeds = localStorage['GSSFeeds'].split(delimiter);
-         indexOfTitleToBeRemoved = GSSFeeds.indexOf(titleToBeRemoved);
-
-         if (indexOfTitleToBeRemoved != -1) {
-             console.log('removing', titleToBeRemoved);
-             GSSFeeds.splice(indexOfTitleToBeRemoved, 1);
-             localStorage['GSSFeeds'] = GSSFeeds.join(delimiter)
-         } else {
-             console.error('could not find the title in the local storage')
-         }
+         removePlaylist(playlistID, titleToBeRemoved);
 
          $(this).parent().remove();
      });
 }
 
-function refreshPlaylist(playlistID){
-
-
-}
 
 //})(ges.modules.modules);
 
