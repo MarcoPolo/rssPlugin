@@ -105,6 +105,7 @@ function checkLastResult(){
     //load this when The search has finished
     if(GSS.songs.length == RSS.entries.length){
         console.log('done');
+        createRSSPlaylist();
         $('#GSSloading').remove();
         $('#gs_join input').val('');
         $('#gs_join input').show();
@@ -198,7 +199,6 @@ function injectMenu(){
     $('#gs_join').submit(function() {
         var rssURL  = $('input', this).val();
         getRSS(rssURL);
-        setTimeout(function (){createRSSPlaylist();}, 2e3);
         $('input',this).hide();
         $('#gs_join').append('<img id="GSSloading" src="http://i.imgur.com/xRiVV.gif"/>');
 
@@ -233,6 +233,11 @@ function injectRemoveFeed(playlistID){
 
          $(this).parent().remove();
      });
+}
+
+function refreshPlaylist(playlistID){
+
+
 }
 
 //})(ges.modules.modules);
