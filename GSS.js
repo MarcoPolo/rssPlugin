@@ -84,7 +84,7 @@ function searchForTerms(searchTerms){
         GS.service.getSearchResultsEx(searchTerm, true, null, function(resp){
             //console.log(searchTerm);
             //console.log(resp.result);
-            GSS.songs.push({'artist':makeComparable(term[1]), 'songname':term[0], 'results':resp.result, songInfo:''});
+            GSS.songs.push({'artist':makeComparable(term[0]), 'songname':term[1], 'results':resp.result, songInfo:''});
 
             checkLastResult();
         }, null)
@@ -96,10 +96,6 @@ function checkLastResult(){
     var foundSong = false;
     for (var resultIndex = 0; resultIndex<song.results.length; resultIndex++){
         var result = song.results[resultIndex]; 
-
-        console.log(makeComparable(result.ArtistName) , makeComparable(song.artist));
-        console.log(makeComparable(result.SongName) , makeComparable(song.songname))
-
         if((makeComparable(result.ArtistName) == makeComparable(song.artist)) && (makeComparable(result.SongName) == makeComparable(song.songname)) ){
             console.log('found the correct result and it is' + result.SongID);
             song.songInfo = result;
