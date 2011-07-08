@@ -54,7 +54,7 @@ function getRSS(rssURL){
 
         
         //This will be used to check for updates
-        GSS.rssData = [RSS.feedUrl].concat(RSS.entries.map(function(song){return song.title})).join(delimeter);
+        GSS.rssData = [RSS.feedUrl, GSS.title].concat(RSS.entries.map(function(song){return song.title})).join(delimeter);
 
         buildSearchTerms(RSS);
     })
@@ -177,6 +177,7 @@ function refreshPlaylist(playlistID){
     var t = setInterval(function(){
         var oldData = localStorage[playlistID]; 
         var rssURL = oldData[0];
+        var rssTitle = oldData[1];
         var newData;
 
         $.getJSON('https://ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=100&key=ABQIAAAAuIlbOmUd3gJTNVDSvX8ZBBThVXKRlugNJ0FXtFSdeFPX98YKrhQMO67lQJHw2mO0gu2r-chAP3vHeg&q='+rssURL+'&callback=?', function(resp){
@@ -184,13 +185,15 @@ function refreshPlaylist(playlistID){
             newData = [RSS.feedUrl].concat(RSS.entries.map(function(song){return song.title})).join(delimeter);
             
             if ( newData != oldData ) {
-                updatePlaylist(playlistID);
+                updatePlaylist(playlistID, rssTitle, rssURL);
             }
         });
     }, 10e3);
 }
 
-function updatePlaylist(playlistID){
+function updatePlaylist(playlistID, rssTitle, rssURL){
+    removePlaylist(playlistID, rssTitle);
+    getRSS(rssURL);
 }
 
 function injectMenu(){
