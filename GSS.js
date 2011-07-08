@@ -47,6 +47,7 @@ function getRSS(rssURL){
     GSS = {};
     GSS.songs = [];
     GSS.SongIDs = [];
+    var delimiter = '|#|';
     $.getJSON('https://ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=100&key=ABQIAAAAuIlbOmUd3gJTNVDSvX8ZBBThVXKRlugNJ0FXtFSdeFPX98YKrhQMO67lQJHw2mO0gu2r-chAP3vHeg&q='+rssURL+'&callback=?', function(resp){
         //console.log(resp);
         RSS = resp.responseData.feed;
@@ -54,7 +55,7 @@ function getRSS(rssURL){
 
         
         //This will be used to check for updates
-        GSS.rssData = [RSS.feedUrl, GSS.title].concat(RSS.entries.map(function(song){return song.title})).join(delimeter);
+        GSS.rssData = [RSS.feedUrl, GSS.title].concat(RSS.entries.map(function(song){return song.title})).join(delimiter);
 
         buildSearchTerms(RSS);
     })
@@ -140,7 +141,7 @@ function createRSSPlaylist(){
         if (typeof localStorage['GSSFeeds'] == 'undefined') {
             localStorage['GSSFeeds'] = GSS.title;
         }else{
-            var delimiter = '|#|'
+            var delimiter = '|#|';
             var GSSFeeds = localStorage['GSSFeeds'].split(delimiter);
             GSSFeeds.push(GSS.title);
             localStorage['GSSFeeds'] = GSSFeeds.join(delimiter);
@@ -173,7 +174,7 @@ function injectRSSPlaylist(playlistID, title){
 
 //This will read the rss entries from local storage and see if there has been a change, if so it will update the playlist
 function refreshPlaylist(playlistID){
-    var delimeter = '|#|';
+    var delimiter = '|#|';
     var t = setInterval(function(){
         var oldData = localStorage[playlistID]; 
         var rssURL = oldData[0];
@@ -182,7 +183,7 @@ function refreshPlaylist(playlistID){
 
         $.getJSON('https://ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=100&key=ABQIAAAAuIlbOmUd3gJTNVDSvX8ZBBThVXKRlugNJ0FXtFSdeFPX98YKrhQMO67lQJHw2mO0gu2r-chAP3vHeg&q='+rssURL+'&callback=?', function(resp){
             var RSS = resp.responseData.feed;
-            newData = [RSS.feedUrl].concat(RSS.entries.map(function(song){return song.title})).join(delimeter);
+            newData = [RSS.feedUrl].concat(RSS.entries.map(function(song){return song.title})).join(delimiter);
             
             if ( newData != oldData ) {
                 updatePlaylist(playlistID, rssTitle, rssURL);
@@ -245,13 +246,13 @@ function removePlaylist(playlistID, titleToBeRemoved){
 
      //remove the title from the localStorage
 
-     var GSSFeeds = localStorage['GSSFeeds'].split(delimiter);
+     var GSSFeeds = localStorage['GSSFeeds'].split(delemiter);
      indexOfTitleToBeRemoved = GSSFeeds.indexOf(titleToBeRemoved);
 
      if (indexOfTitleToBeRemoved != -1) {
          console.log('removing', titleToBeRemoved);
          GSSFeeds.splice(indexOfTitleToBeRemoved, 1);
-         localStorage['GSSFeeds'] = GSSFeeds.join(delimiter)
+         localStorage['GSSFeeds'] = GSSFeeds.join(delimiter);
      } else {
          console.error('could not find the title in the local storage')
      }
