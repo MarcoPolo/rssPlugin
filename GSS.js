@@ -19,7 +19,7 @@ injectMenu()
 function construct(){
     
     if (typeof localStorage['GSSFeeds'] == 'undefined') {
-        localStorage['GSSFeeds'] == []
+        localStorage['GSSFeeds'] = []
     }
 
     injectMenu();
@@ -33,7 +33,7 @@ function destruct(){
 
 function checkExistingFeeds(){
     //gssfeeds is an array of RSS titles
-    if (localStorage['GSSFeeds'] != '') {
+    if (localStorage['GSSFeeds'] != '' && typeof localStorage['GSSFeeds'] != 'undefined') {
         var GSSFeeds = localStorage['GSSFeeds'].split('|#|');
         for (var i=1; i < GSSFeeds.length; i++){
             var playlistID = localStorage[GSSFeeds[i]];
