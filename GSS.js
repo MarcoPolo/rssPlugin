@@ -174,8 +174,8 @@ function checkLastResult(){
 
 function clearLoadingIcon() {
     $('#GSSloading').remove();
-    $('#gs_join input').val('');
-    $('#gs_join input').show();
+    $('#gss_join input').val('');
+    $('#gss_join input').show();
 }
 
 function createRSSPlaylist(){
@@ -255,36 +255,36 @@ function updatePlaylist(playlistID, rssTitle, rssURL){
 function injectMenu(){
     checkExistingFeeds();
     var style = document.createElement('style');
-    style.innerText = '#gs_dropdown { display:none; background:#fff; color:#000; width:225px; padding:5px; -moz-border-radius:3px 0 3px 3px; -webkit-border-radius:3px 0 3px 3px; margin-top:-4px; border:1px solid rgba(0,0,0,.25); border-top:none; background-clip:padding-box; }';
-    style.innerText += '#gs_gsync.active { margin:1px 1px 0 0 !important; }';
-    style.innerText += '#gs_synced, #gs_unsynced { padding:10px; margin-bottom:10px; font-weight:bold; text-align:center; font-size:11px; -moz-border-radius:2px; -webkit-border-radius:2px; }';
-    style.innerText += '#gs_synced { display:none; background:#d8ebf8; color:#3c7abe; } #gs_unsynced { display:block; background:#eee; } #gs_synced span { color:#306399; }';
-    style.innerText += '#gs_leave { display:block; color:rgba(60, 122, 190, 0.5); text-align:center; font:normal 10px Arial, sans-serif; margin:6px 0 -2px 0; } #gs_leave:hover { color:rgb(60, 122, 190); text-decoration:underline; }';
-    style.innerText += '#gs_join label { font-size:11px; } #gs_join input { width:215px; font-size:13px; border:1px solid #c2c1c1; border-top:1px solid #a8a8a8; padding:5px 4px; -moz-border-radius:2px; -moz-box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); -webkit-border-radius:2px; -webkit-box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); }';
+    style.innerText = '#gss_dropdown { display:none; background:#fff; color:#000; width:225px; padding:5px; -moz-border-radius:3px 0 3px 3px; -webkit-border-radius:3px 0 3px 3px; margin-top:-4px; border:1px solid rgba(0,0,0,.25); border-top:none; background-clip:padding-box; }';
+    style.innerText += '#gss_gsync.active { margin:1px 1px 0 0 !important; }';
+    style.innerText += '#gss_synced, #gs_unsynced { padding:10px; margin-bottom:10px; font-weight:bold; text-align:center; font-size:11px; -moz-border-radius:2px; -webkit-border-radius:2px; }';
+    style.innerText += '#gss_synced { display:none; background:#d8ebf8; color:#3c7abe; } #gs_unsynced { display:block; background:#eee; } #gss_synced span { color:#306399; }';
+    style.innerText += '#gss_leave { display:block; color:rgba(60, 122, 190, 0.5); text-align:center; font:normal 10px Arial, sans-serif; margin:6px 0 -2px 0; } #gss_leave:hover { color:rgb(60, 122, 190); text-decoration:underline; }';
+    style.innerText += '#gss_join label { font-size:11px; } #gss_join input { width:215px; font-size:13px; border:1px solid #c2c1c1; border-top:1px solid #a8a8a8; padding:5px 4px; -moz-border-radius:2px; -moz-box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); -webkit-border-radius:2px; -webkit-box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); }';
     style.innerText += '#GSSloading { display:block; margin-right:auto; margin-left:auto; }';
     document.body.appendChild(style);
 
     var syncMenu;
     syncMenu =  '<li class="last">';
-    syncMenu += '<div id="GSS" class="btn btn_style1"><span id="gs_label">GSS</span></div>';
-    syncMenu += '<div id="gs_dropdown" class="dropdown right">';
-    syncMenu += '   <div id="gs_synced">Synced with group <span id="gs_group"></span><a id="gs_leave">Leave group</a></div>';
-    syncMenu += '   <form id="gs_join">';
+    syncMenu += '<div id="GSS" class="btn btn_style1"><span id="gss_label">GSS</span></div>';
+    syncMenu += '<div id="gss_dropdown" class="dropdown right">';
+    syncMenu += '   <div id="gss_synced">Synced with group <span id="gs_group"></span><a id="gss_leave">Leave group</a></div>';
+    syncMenu += '   <form id="gss_join">';
     syncMenu += '       <label for="groupID">Add an RSS feed: </label><input type="text" name="groupID" />';
     syncMenu += '   </form>';
     syncMenu += '</div></li>';
 
     $('#userOptions').append(syncMenu);
      $('#GSS').click(function() {
-         $('#gs_dropdown').toggle();
+         $('#gss_dropdown').toggle();
          $(this).toggleClass('active'); 
      });
 
-    $('#gs_join').submit(function() {
+    $('#gss_join').submit(function() {
         var rssURL  = $('input', this).val();
         getRSS(rssURL);
         $('input',this).hide();
-        $('#gs_join').append('<img id="GSSloading" src="http://i.imgur.com/xRiVV.gif"/>');
+        $('#gss_join').append('<img id="GSSloading" src="http://i.imgur.com/xRiVV.gif"/>');
 
 
         return false;
