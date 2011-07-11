@@ -96,6 +96,9 @@ function checkLastResult(){
     var foundSong = false;
     for (var resultIndex = 0; resultIndex<song.results.length; resultIndex++){
         var result = song.results[resultIndex]; 
+        console.log(makeComparable(result.ArtistName) , makeComparable(song.artist));
+        console.log(makeComparable(result.SongName) , makeComparable(song.songname));
+
         if((makeComparable(result.ArtistName) == makeComparable(song.artist)) && (makeComparable(result.SongName) == makeComparable(song.songname)) ){
             console.log('found the correct result and it is' + result.SongID);
             song.songInfo = result;
@@ -176,17 +179,25 @@ function injectRSSPlaylist(playlistID, title){
 function refreshPlaylist(playlistID){
     var delimiter = '|#|';
     var t = setInterval(function(){
-        var oldData = localStorage[playlistID]; 
+        var oldData = localStorage[playlistID].split(delimiter); 
+        //console.log('oldData',oldData);
         var rssURL = oldData[0];
         var rssTitle = oldData[1];
         var newData;
 
+        console.log('rssURL', rssURL);
         $.getJSON('https://ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=100&key=ABQIAAAAuIlbOmUd3gJTNVDSvX8ZBBThVXKRlugNJ0FXtFSdeFPX98YKrhQMO67lQJHw2mO0gu2r-chAP3vHeg&q='+rssURL+'&callback=?', function(resp){
             var RSS = resp.responseData.feed;
-            newData = [RSS.feedUrl].concat(RSS.entries.map(function(song){return song.title})).join(delimiter);
+            console.log(resp);
+            newData = [RSS.feedUrl, rssTitle].concat(RSS.entries.map(function(song){return song.title}));
+            //console.log('newData', newData);
             
-            if ( newData != oldData ) {
+            if ( newData.join().toLowerCase() != oldData.join().toLowerCase() ) {
+                console.log('something is different');
+                localStorage[playlistID] = newData.join(delimiter);
                 updatePlaylist(playlistID, rssTitle, rssURL);
+            }else{
+                console.log('nothing is different');
             }
         });
     }, 10e3);
@@ -246,7 +257,7 @@ function removePlaylist(playlistID, titleToBeRemoved){
 
      //remove the title from the localStorage
 
-     var GSSFeeds = localStorage['GSSFeeds'].split(delemiter);
+     var GSSFeeds = localStorage['GSSFeeds'].split(delimiter);
      indexOfTitleToBeRemoved = GSSFeeds.indexOf(titleToBeRemoved);
 
      if (indexOfTitleToBeRemoved != -1) {
