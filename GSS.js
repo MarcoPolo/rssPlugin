@@ -61,7 +61,11 @@ function getRSS(rssURL){
     var delimiter = '|#|';
     $.getJSON('https://ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=1300&key=ABQIAAAAuIlbOmUd3gJTNVDSvX8ZBBThVXKRlugNJ0FXtFSdeFPX98YKrhQMO67lQJHw2mO0gu2r-chAP3vHeg&q='+rssURL+'&callback=?', function(resp){
         //console.log(resp);
-        RSS = resp.responseData.feed;
+        try {
+            RSS = resp.responseData.feed;
+        } catch (err) {
+            clearLoadingIcon();
+        }
         RSS.songs = [];
         GSS.title = RSS.title;
         GSS.feedUrl = RSS.feedUrl;
@@ -70,7 +74,8 @@ function getRSS(rssURL){
         GSS.songs = [RSS.feedUrl, GSS.title].concat(RSS.entries.map(function(song){return song.title})).join(delimiter);
 
         if (RSS.entries.length == 0){
-            console.log('invalid')
+            console.log('invalid');
+            clearLoadingIcon();
         }
         urlMapper();
     })
@@ -100,7 +105,11 @@ function buildHypeMSearchTerms(){
     var entries = RSS.entries;
     for (var i=0; i<RSS.entries.length; i++){
 		searchTerms = [];
-        console.log(entries[i].title)
+        console.log(entries[i].title);
+        //To make sure that if a title doesn't have the hyphen it doesn't break the plugin
+        if ( entries[i].title.indexOf(' - ') == -1 ) {
+            entries[i].title = entries[i].title.concat(' - ');
+        }
 		searchTerms.push(entries[i].title.replace(/"/g,'').split(' - '));
 		searchForTerms(searchTerms);
 	}
@@ -109,8 +118,11 @@ function buildHypeMSearchTerms(){
 function buildiTunesSearchTerms(){
     var entries = RSS.entries;
     for (var i=0; i<RSS.entries.length; i++){
-		var searchTerms = [];
-		//console.log(entry.title.replace('"',''));
+		searchTerms = [];
+        //To make sure that if a title doesn't have the hyphen it doesn't break the plugin
+        if ( entries[i].title.indexOf(' - ') == -1 ) {
+            entries[i].title = entries[i].title.concat(' - ');
+        }
 		var swapingPlaces = entries[i].title.replace(/"/g,'').split(' - ');
         //to switch the terms, iTunes puts the artiest second
         swapingPlaces[1] = swapingPlaces.splice(0, 1, swapingPlaces[1])[0];
@@ -156,10 +168,14 @@ function checkLastResult(){
     if(RSS.songs.length == RSS.entries.length){
         console.log('done');
         createRSSPlaylist();
-        $('#GSSloading').remove();
-        $('#gs_join input').val('');
-        $('#gs_join input').show();
+        clearLoadingIcon();
     }
+}
+
+function clearLoadingIcon() {
+    $('#GSSloading').remove();
+    $('#gs_join input').val('');
+    $('#gs_join input').show();
 }
 
 function createRSSPlaylist(){
@@ -313,7 +329,6 @@ function injectRemoveFeed(playlistID){
          $(this).parent().remove();
      });
 }
-
 
 //})(ges.modules.modules);
 
