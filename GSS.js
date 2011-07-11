@@ -31,16 +31,27 @@ function destruct(){
 }
 
 
+
 function checkExistingFeeds(){
     //gssfeeds is an array of RSS titles
     if (localStorage['GSSFeeds'] != '' && typeof localStorage['GSSFeeds'] != 'undefined') {
-        var GSSFeeds = localStorage['GSSFeeds'].split('|#|');
-        for (var i=1; i < GSSFeeds.length; i++){
-            var playlistID = localStorage[GSSFeeds[i]];
-            injectRSSPlaylist(playlistID, GSSFeeds[i]);
-            refreshPlaylist(playlistID)
+        GSSFeeds = JSON.parse(localStorage['GSSFeeds'])
+        for (var i=0; i < GSSFeeds.length; i++){
+            injectRSSPlaylist(GSSFeeds[i]);
+            //refreshPlaylist(playlistID)
         }
+    } else {
+        GSSFeeds = [];
     }
+}
+
+function makeComparable(name){
+    name.replace('&amp','&');
+    name = name.toLowerCase();
+    //remove stuff paranthetical information
+    name = name.replace(/ *\([^)]*\) */g, "");
+
+    return name;
 }
 
 function getRSS(rssURL){
@@ -48,43 +59,76 @@ function getRSS(rssURL){
     GSS.songs = [];
     GSS.SongIDs = [];
     var delimiter = '|#|';
-    $.getJSON('https://ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=100&key=ABQIAAAAuIlbOmUd3gJTNVDSvX8ZBBThVXKRlugNJ0FXtFSdeFPX98YKrhQMO67lQJHw2mO0gu2r-chAP3vHeg&q='+rssURL+'&callback=?', function(resp){
+    $.getJSON('https://ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=1300&key=ABQIAAAAuIlbOmUd3gJTNVDSvX8ZBBThVXKRlugNJ0FXtFSdeFPX98YKrhQMO67lQJHw2mO0gu2r-chAP3vHeg&q='+rssURL+'&callback=?', function(resp){
         //console.log(resp);
         RSS = resp.responseData.feed;
+        RSS.songs = [];
         GSS.title = RSS.title;
+        GSS.feedUrl = RSS.feedUrl;
 
-        
         //This will be used to check for updates
-        GSS.rssData = [RSS.feedUrl, GSS.title].concat(RSS.entries.map(function(song){return song.title})).join(delimiter);
+        GSS.songs = [RSS.feedUrl, GSS.title].concat(RSS.entries.map(function(song){return song.title})).join(delimiter);
 
-        buildSearchTerms(RSS);
+        if (RSS.entries.length == 0){
+            console.log('invalid')
+        }
+        urlMapper();
     })
 }
 
-function makeComparable(name){
-    name.replace('&amp','&');
-    name = name.toLowerCase();
+function urlMapper(){
+    var url = RSS.feedUrl;
 
-    return name;
+    if(url.indexOf('hypem') != -1){
+        buildHypeMSearchTerms();
+        GSS.favicon = 'http://hypem.com/favicon.png';
+        return;
+    } else if(url.indexOf('itunes') != -1) {
+        console.log('itunes feed detected');
+        GSS.favicon = 'http://www.wolframcdn.com/navigation/favicon/a/apple_com.png';
+        buildiTunesSearchTerms();
+        return;
+    } else {
+        console.log("I don't recognize this source, so we'll do it live!");
+        GSS.favicon = 'http://hypem.com/favicon.png';
+        buildiTunesSearchTerms();
+        return
+    }
 }
 
-function buildSearchTerms(RSS){
-	var a = RSS.entries.map(function(entry){
+function buildHypeMSearchTerms(){
+    var entries = RSS.entries;
+    for (var i=0; i<RSS.entries.length; i++){
 		searchTerms = [];
-		//console.log(entry.title.replace('"',''));
-		searchTerms.push(entry.title.replace(/"/g,'').split(' - '));
-
+        console.log(entries[i].title)
+		searchTerms.push(entries[i].title.replace(/"/g,'').split(' - '));
 		searchForTerms(searchTerms);
-	});
+	}
 }
 
+function buildiTunesSearchTerms(){
+    var entries = RSS.entries;
+    for (var i=0; i<RSS.entries.length; i++){
+		var searchTerms = [];
+		//console.log(entry.title.replace('"',''));
+		var swapingPlaces = entries[i].title.replace(/"/g,'').split(' - ');
+        //to switch the terms, iTunes puts the artiest second
+        swapingPlaces[1] = swapingPlaces.splice(0, 1, swapingPlaces[1])[0];
+		searchTerms.push(swapingPlaces);
+		searchForTerms(searchTerms);
+	}
+}
+
+
+
+//searchTerms is an array of two item arrays. The first term in the sub array is the artist the second term is the song name
 function searchForTerms(searchTerms){
 	searchTerms.map(function(term){
-        searchTerm = (term[0]) + ' ' + term[1];
+        searchTerm = (makeComparable(term[0]) + ' ' + makeComparable(term[1]));
         GS.service.getSearchResultsEx(searchTerm, true, null, function(resp){
             //console.log(searchTerm);
             //console.log(resp.result);
-            GSS.songs.push({'artist':makeComparable(term[0]), 'songname':term[1], 'results':resp.result, songInfo:''});
+            RSS.songs.push({'artist':makeComparable(term[0]), 'songname':makeComparable(term[1]), 'results':resp.result, songInfo:''});
 
             checkLastResult();
         }, null)
@@ -92,15 +136,13 @@ function searchForTerms(searchTerms){
 }
 
 function checkLastResult(){
-    var song = GSS.songs[GSS.songs.length-1];
-    var foundSong = false;
+    var song = RSS.songs[RSS.songs.length-1];
     for (var resultIndex = 0; resultIndex<song.results.length; resultIndex++){
         var result = song.results[resultIndex]; 
         if((makeComparable(result.ArtistName) == makeComparable(song.artist)) && (makeComparable(result.SongName) == makeComparable(song.songname)) ){
             console.log('found the correct result and it is' + result.SongID);
             song.songInfo = result;
             GSS.SongIDs.push(result.SongID);
-            foundSoung = true;
             break;
         }else{
             console.error('Did not find ', song.songname, ' by ' , song.artist);
@@ -108,24 +150,13 @@ function checkLastResult(){
     }
 
     //load this when The search has finished
-    if(GSS.songs.length == RSS.entries.length){
+    if(RSS.songs.length == RSS.entries.length){
         console.log('done');
         createRSSPlaylist();
         $('#GSSloading').remove();
         $('#gs_join input').val('');
         $('#gs_join input').show();
     }
-
-}
-
-function addRSSToQueue(){
-	GSS.songs.map(function(song){
-            if (typeof song.songInfo.SongID != 'undefined'){
-                console.log('adding ', song.songname, ' to queue');
-                console.log('with song id', song.songInfo.SongID);
-                GS.player.addSongsToQueueAt(song.songInfo.SongID,'0',false,'');
-            }
-    });
 }
 
 function createRSSPlaylist(){
@@ -133,25 +164,21 @@ function createRSSPlaylist(){
     GS.service.createPlaylist(GSS.title, GSS.SongIDs, '', function(result, req){
         console.log('result',result, 'req',req);
         var playlistID=result;
-        injectRSSPlaylist(playlistID, GSS.title);
+        GSS.playlistID = playlistID;
+        injectRSSPlaylist(GSS);
 
         //use local storage
         
-        //push the title of the RSS into the playlist
-        if (typeof localStorage['GSSFeeds'] == 'undefined') {
-            localStorage['GSSFeeds'] = GSS.title;
-        }else{
-            var delimiter = '|#|';
-            var GSSFeeds = localStorage['GSSFeeds'].split(delimiter);
-            GSSFeeds.push(GSS.title);
-            localStorage['GSSFeeds'] = GSSFeeds.join(delimiter);
-        }
-        localStorage[GSS.title] = playlistID;
-        localStorage[playlistID] = GSS.rssData;
+        //push the GSS into the GSSFeeds
+        GSSFeeds.push(GSS);
+        localStorage['GSSFeeds'] = JSON.stringify(GSSFeeds);
     },null);
 }
 
-function injectRSSPlaylist(playlistID, title){
+function injectRSSPlaylist(GSSinfo){
+    var playlistID = GSSinfo.playlistID;
+    var title = GSSinfo.title;
+    var favicon = GSSinfo.favicon;
     console.log('playlist', playlistID);
     console.log('title', title);
 
@@ -163,7 +190,7 @@ function injectRSSPlaylist(playlistID, title){
     $('#sidebar_playlists').append(playlistCSS);
 
     //todo fix thix to be more dynamic
-    $('[title="' + title + '"] .icon').css('background-image', 'url("http://hypem.com/favicon.png")');
+    $('[title="' + title + '"] .icon').css('background-image', 'url("'+ favicon +'")');
     $('[title="' + title + '"] .icon').css('background-position', '0 0');
 
     $('[title="' + title + '"] .remove').css('background-image', '');
@@ -173,6 +200,7 @@ function injectRSSPlaylist(playlistID, title){
 }
 
 //This will read the rss entries from local storage and see if there has been a change, if so it will update the playlist
+
 function refreshPlaylist(playlistID){
     var delimiter = '|#|';
     var t = setInterval(function(){
@@ -246,13 +274,19 @@ function removePlaylist(playlistID, titleToBeRemoved){
 
      //remove the title from the localStorage
 
-     var GSSFeeds = localStorage['GSSFeeds'].split(delemiter);
-     indexOfTitleToBeRemoved = GSSFeeds.indexOf(titleToBeRemoved);
+     var indexOfTitleToBeRemoved = -1;
+
+     for (var i = 0; i<GSSFeeds.length; i++){
+         if (GSSFeeds[i].title = titleToBeRemoved){
+             indexOfTitleToBeRemoved = i;
+             break
+         }
+     }
 
      if (indexOfTitleToBeRemoved != -1) {
          console.log('removing', titleToBeRemoved);
          GSSFeeds.splice(indexOfTitleToBeRemoved, 1);
-         localStorage['GSSFeeds'] = GSSFeeds.join(delimiter);
+         localStorage['GSSFeeds'] = JSON.stringify(GSSFeeds);
      } else {
          console.error('could not find the title in the local storage')
      }
