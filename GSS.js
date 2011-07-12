@@ -256,7 +256,7 @@ function injectMenu(){
     checkExistingFeeds();
     var style = document.createElement('style');
     style.innerText = '#gss_dropdown { display:none; background:#fff; color:#000; width:225px; padding:5px; -moz-border-radius:3px 0 3px 3px; -webkit-border-radius:3px 0 3px 3px; margin-top:-4px; border:1px solid rgba(0,0,0,.25); border-top:none; background-clip:padding-box; }';
-    style.innerText += '#gss_gsync.active { margin:1px 1px 0 0 !important; }';
+    style.innerText += '#GSS.active { margin:1px 1px 0px 4px !important; }';
     style.innerText += '#gss_synced, #gs_unsynced { padding:10px; margin-bottom:10px; font-weight:bold; text-align:center; font-size:11px; -moz-border-radius:2px; -webkit-border-radius:2px; }';
     style.innerText += '#gss_synced { display:none; background:#d8ebf8; color:#3c7abe; } #gs_unsynced { display:block; background:#eee; } #gss_synced span { color:#306399; }';
     style.innerText += '#gss_leave { display:block; color:rgba(60, 122, 190, 0.5); text-align:center; font:normal 10px Arial, sans-serif; margin:6px 0 -2px 0; } #gss_leave:hover { color:rgb(60, 122, 190); text-decoration:underline; }';
