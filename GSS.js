@@ -1,4 +1,4 @@
-/*;(function(modules) {
+;(function(modules) {
 
     modules['GSS'] = {
           'author': 'Marco Munizaga'
@@ -10,7 +10,6 @@
         , 'construct': construct
         , 'destruct': destruct
     };
-*/
 
 
 
@@ -50,6 +49,9 @@ function makeComparable(name){
     name = name.toLowerCase();
     //remove stuff paranthetical information
     name = name.replace(/ *\([^)]*\) */g, "");
+
+    //remove ' 
+    name = name.replace("'", "");
 
     return name;
 }
@@ -136,7 +138,7 @@ function buildiTunesSearchTerms(){
 //searchTerms is an array of two item arrays. The first term in the sub array is the artist the second term is the song name
 function searchForTerms(searchTerms){
 	searchTerms.map(function(term){
-        searchTerm = (makeComparable(term[0]) + ' ' + makeComparable(term[1]));
+        searchTerm = ('song:'+makeComparable(term[1]) + ' ' + 'artist:' + makeComparable(term[0]));
         GS.service.getSearchResultsEx(searchTerm, true, null, function(resp){
             //console.log(searchTerm);
             //console.log(resp.result);
@@ -151,8 +153,10 @@ function checkLastResult(){
     var song = RSS.songs[RSS.songs.length-1];
     for (var resultIndex = 0; resultIndex<song.results.length; resultIndex++){
         var result = song.results[resultIndex]; 
-        console.log(makeComparable(result.ArtistName) , makeComparable(song.artist));
-        console.log(makeComparable(result.SongName) , makeComparable(song.songname));
+        //console.log(makeComparable(result.ArtistName) , makeComparable(song.artist));
+        //console.log(makeComparable(result.SongName) , makeComparable(song.songname));
+
+        changeLoadingPercent((RSS.songs.length/RSS.entries.length)*100)
 
         if((makeComparable(result.ArtistName) == makeComparable(song.artist)) && (makeComparable(result.SongName) == makeComparable(song.songname)) ){
             console.log('found the correct result and it is' + result.SongID);
@@ -168,12 +172,16 @@ function checkLastResult(){
     if(RSS.songs.length == RSS.entries.length){
         console.log('done');
         createRSSPlaylist();
-        clearLoadingIcon();
+        $("#GSSfinishedBox").fadeIn("slow");
+        setTimeout(function(){clearLoadingIcon();}, 1000);
     }
 }
 
 function clearLoadingIcon() {
-    $('#GSSloading').remove();
+    //$('#GSSloading').remove();
+    $('#GSSfinishedBox').remove();
+    $('#GSSloadingBox').remove();
+
     $('#gss_join input').val('');
     $('#gss_join input').show();
 }
@@ -185,6 +193,8 @@ function createRSSPlaylist(){
         var playlistID=result;
         GSS.playlistID = playlistID;
         injectRSSPlaylist(GSS);
+
+        location.hash = "#/playlist/LoLoLoL/"+playlistID;
 
         //use local storage
         
@@ -256,12 +266,15 @@ function injectMenu(){
     checkExistingFeeds();
     var style = document.createElement('style');
     style.innerText = '#gss_dropdown { display:none; background:#fff; color:#000; width:225px; padding:5px; -moz-border-radius:3px 0 3px 3px; -webkit-border-radius:3px 0 3px 3px; margin-top:-4px; border:1px solid rgba(0,0,0,.25); border-top:none; background-clip:padding-box; }';
-    style.innerText += '#GSS.active { margin:1px 1px 0px 4px !important; }';
+    style.innerText += '#GSS.active { margin:1px 1px 0px 2px !important; }';
     style.innerText += '#gss_synced, #gs_unsynced { padding:10px; margin-bottom:10px; font-weight:bold; text-align:center; font-size:11px; -moz-border-radius:2px; -webkit-border-radius:2px; }';
     style.innerText += '#gss_synced { display:none; background:#d8ebf8; color:#3c7abe; } #gs_unsynced { display:block; background:#eee; } #gss_synced span { color:#306399; }';
     style.innerText += '#gss_leave { display:block; color:rgba(60, 122, 190, 0.5); text-align:center; font:normal 10px Arial, sans-serif; margin:6px 0 -2px 0; } #gss_leave:hover { color:rgb(60, 122, 190); text-decoration:underline; }';
     style.innerText += '#gss_join label { font-size:11px; } #gss_join input { width:215px; font-size:13px; border:1px solid #c2c1c1; border-top:1px solid #a8a8a8; padding:5px 4px; -moz-border-radius:2px; -moz-box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); -webkit-border-radius:2px; -webkit-box-shadow:inset 0 1px 2px rgba(0,0,0,0.2); }';
     style.innerText += '#GSSloading { display:block; margin-right:auto; margin-left:auto; }';
+    style.innerText += '#GSSloadingBar { display:block; border-radius: 5px; background:#212121; height:20px; width:0px; }';
+    style.innerText += '#GSSloadingBox { display: block; border-radius: 5px; background:#F5F5F5 }';
+    style.innerText += '#GSSfinishedBox { display:none; position:absolute; padding: 2px 0; width:225px; text-align:center; color:#fff; font-size:16px; }';
     document.body.appendChild(style);
 
     var syncMenu;
@@ -284,13 +297,17 @@ function injectMenu(){
         var rssURL  = $('input', this).val();
         getRSS(rssURL);
         $('input',this).hide();
-        $('#gss_join').append('<img id="GSSloading" src="http://i.imgur.com/xRiVV.gif"/>');
-
-
+        //$('#gss_join').append('<img id="GSSloading" src="http://i.imgur.com/xRiVV.gif"/>');
+        $('#gss_join').append('<div id=GSSloadingBox><div id=GSSfinishedBox>Finished!</div><div id=GSSloadingBar></div></div>');
         return false;
      });
      
 }
+
+function changeLoadingPercent(loadingPecent){
+    $('#GSSloadingBar').css('width',225*(.01)*loadingPecent);
+}
+
 
 function removePlaylist(playlistID, titleToBeRemoved){
      var delimiter = '|#|';
@@ -330,5 +347,5 @@ function injectRemoveFeed(playlistID){
      });
 }
 
-//})(ges.modules.modules);
+})(ges.modules.modules);
 

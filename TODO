@@ -1,8 +1,5 @@
-Rewrite the use of local storage to turn it more into a database that supports objects rather than just strings
-
-
-Make chrome extension to make it easy to add
-
-Find way to adjust page length 
-
 make it work under user that is not logged in
+
+Give a loading bar
+
+actually place playlist in the sidebar not just inject them
