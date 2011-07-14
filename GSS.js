@@ -1,4 +1,4 @@
-;(function(modules) {
+/* ;(function(modules) {
 
     modules['GSS'] = {
           'author': 'Marco Munizaga'
@@ -10,7 +10,7 @@
         , 'construct': construct
         , 'destruct': destruct
     };
-
+*/
 
 
 injectMenu()
@@ -98,7 +98,7 @@ function urlMapper(){
     } else {
         console.log("I don't recognize this source, so we'll do it live!");
         GSS.favicon = 'http://hypem.com/favicon.png';
-        buildiTunesSearchTerms();
+        buildHypeMSearchTerms();
         return
     }
 }
@@ -143,7 +143,6 @@ function searchForTerms(searchTerms){
             //console.log(searchTerm);
             //console.log(resp.result);
             RSS.songs.push({'artist':makeComparable(term[0]), 'songname':makeComparable(term[1]), 'results':resp.result, songInfo:''});
-
             checkLastResult();
         }, null)
 	});
@@ -172,8 +171,12 @@ function checkLastResult(){
     if(RSS.songs.length == RSS.entries.length){
         console.log('done');
         createRSSPlaylist();
-        $("#GSSfinishedBox").fadeIn("slow");
-        setTimeout(function(){clearLoadingIcon();}, 1000);
+        $("#GSSfinishedBox").fadeIn();
+        setTimeout(function(){
+            clearLoadingIcon();
+            $('#gss_dropdown').toggle();
+            $('#GSS').toggleClass('active');
+        }, 1000);
     }
 }
 
@@ -347,5 +350,5 @@ function injectRemoveFeed(playlistID){
      });
 }
 
-})(ges.modules.modules);
+//})(ges.modules.modules);
 
