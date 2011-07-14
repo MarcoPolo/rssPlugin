@@ -234,7 +234,10 @@ function createRSSPlaylist(){
 }
 
 function addToRSSPlaylist(SongIDs){
-    GS.service.playlistAddSongToExisting(GSS.title, SongIDs,function(){console.log('Finished refreshing playlist')},null);
+    for (var i=0; i<SongIDs.length; i++){
+        GS.service.playlistAddSongToExisting(GSS.title, SongIDs[i],function(){console.log('Finished refreshing playlist')},null);
+    }
+    console.log('There were', SongIDs.length, 'new updates to,' GSS.title);
 }
 
 function injectRSSPlaylist(GSSinfo){
