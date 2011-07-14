@@ -1,4 +1,4 @@
-/* ;(function(modules) {
+;(function(modules) {
 
     modules['GSS'] = {
           'author': 'Marco Munizaga'
@@ -10,7 +10,6 @@
         , 'construct': construct
         , 'destruct': destruct
     };
-*/
 
 
 injectMenu()
@@ -33,16 +32,38 @@ function destruct(){
 
 function checkExistingFeeds(){
     //gssfeeds is an array of RSS titles
+    refreshing = false; //by default we are not refreshing any playlist
     if (localStorage['GSSFeeds'] != '' && typeof localStorage['GSSFeeds'] != 'undefined') {
         GSSFeeds = JSON.parse(localStorage['GSSFeeds'])
         for (var i=0; i < GSSFeeds.length; i++){
             injectRSSPlaylist(GSSFeeds[i]);
-            //refreshPlaylist(playlistID)
+            checkLastRefresh(GSSFeeds[i]);
         }
     } else {
         GSSFeeds = [];
     }
 }
+
+function checkLastRefresh(GSS){
+    var lastTimeRefreshed = GSS.timeStamp;
+    var oneDayLater = lastTimeRefreshed+ '86400'; //86400  is how many seconds there are in a day
+    if (lastTimeRefreshed > oneDayLater){
+        refreshing = true;
+        oldSongIDs = GSS.SongIDs.slice();
+        getRSS(GSS.feedUrl);
+    }
+}
+
+function arrayDiff(oldarray, newarray){
+    var diffarray = [];
+    for(i = 0; i<newarray.length; i++){
+        if (oldarray.indexOf(newarray[i]) == -1){
+            diffarray.push(newarray[i]);
+        }
+    }
+    return newarray;
+}
+
 
 function makeComparable(name){
     name.replace('&amp','&');
@@ -170,7 +191,11 @@ function checkLastResult(){
     //load this when The search has finished
     if(RSS.songs.length == RSS.entries.length){
         console.log('done');
-        createRSSPlaylist();
+        if (refreshing){
+            refreshPlaylist();
+        }else{
+            createRSSPlaylist();
+        }
         $("#GSSfinishedBox").fadeIn();
         setTimeout(function(){
             clearLoadingIcon();
@@ -195,6 +220,7 @@ function createRSSPlaylist(){
         console.log('result',result, 'req',req);
         var playlistID=result;
         GSS.playlistID = playlistID;
+        GSS.timeStamp = Date.parse(Date());
         injectRSSPlaylist(GSS);
 
         location.hash = "#/playlist/LoLoLoL/"+playlistID;
@@ -205,6 +231,10 @@ function createRSSPlaylist(){
         GSSFeeds.push(GSS);
         localStorage['GSSFeeds'] = JSON.stringify(GSSFeeds);
     },null);
+}
+
+function addToRSSPlaylist(SongIDs){
+    GS.service.playlistAddSongToExisting(GSS.title, SongIDs,function(){console.log('Finished refreshing playlist')},null);
 }
 
 function injectRSSPlaylist(GSSinfo){
@@ -233,31 +263,8 @@ function injectRSSPlaylist(GSSinfo){
 
 //This will read the rss entries from local storage and see if there has been a change, if so it will update the playlist
 
-function refreshPlaylist(playlistID){
-    var delimiter = '|#|';
-    var t = setInterval(function(){
-        var oldData = localStorage[playlistID].split(delimiter); 
-        //console.log('oldData',oldData);
-        var rssURL = oldData[0];
-        var rssTitle = oldData[1];
-        var newData;
-
-        console.log('rssURL', rssURL);
-        $.getJSON('https://ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=100&key=ABQIAAAAuIlbOmUd3gJTNVDSvX8ZBBThVXKRlugNJ0FXtFSdeFPX98YKrhQMO67lQJHw2mO0gu2r-chAP3vHeg&q='+rssURL+'&callback=?', function(resp){
-            var RSS = resp.responseData.feed;
-            console.log(resp);
-            newData = [RSS.feedUrl, rssTitle].concat(RSS.entries.map(function(song){return song.title}));
-            //console.log('newData', newData);
-            
-            if ( newData.join().toLowerCase() != oldData.join().toLowerCase() ) {
-                console.log('something is different');
-                localStorage[playlistID] = newData.join(delimiter);
-                updatePlaylist(playlistID, rssTitle, rssURL);
-            }else{
-                console.log('nothing is different');
-            }
-        });
-    }, 10e3);
+function refreshPlaylist(){
+    addToRSSPlaylist(arrayDiff(oldSongIDs, GSS.SongIDs));
 }
 
 function updatePlaylist(playlistID, rssTitle, rssURL){
@@ -350,5 +357,5 @@ function injectRemoveFeed(playlistID){
      });
 }
 
-//})(ges.modules.modules);
+})(ges.modules.modules);
 
