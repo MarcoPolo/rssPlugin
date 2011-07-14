@@ -95,6 +95,9 @@ function getRSS(rssURL){
 
         //This will be used to check for updates
         GSS.songs = [RSS.feedUrl, GSS.title].concat(RSS.entries.map(function(song){return song.title})).join(delimiter);
+        if(refreshing){
+            (oldSongs == GSS.songs) ? refreshing=true : refreshing=false;
+        }
 
         if (RSS.entries.length == 0){
             console.log('invalid');
@@ -237,7 +240,7 @@ function addToRSSPlaylist(SongIDs){
     for (var i=0; i<SongIDs.length; i++){
         GS.service.playlistAddSongToExisting(GSS.title, SongIDs[i],function(){console.log('Finished refreshing playlist')},null);
     }
-    console.log('There were', SongIDs.length, 'new updates to,' GSS.title);
+    console.log('There were', SongIDs.length, 'new updates to', GSS.title);
 }
 
 function injectRSSPlaylist(GSSinfo){
