@@ -38,7 +38,9 @@ function checkExistingFeeds(){
         for (var i=0; i < GSSFeeds.length; i++){
             injectRSSPlaylist(GSSFeeds[i]);
             checkLastRefresh(GSSFeeds[i]);
+            GSSFeeds[i].timeStamp=Date.parse(Date());
         }
+        localStorage['GSSFeeds'] = JSON.stringify(GSSFeeds);
     } else {
         GSSFeeds = [];
     }
@@ -46,11 +48,17 @@ function checkExistingFeeds(){
 
 function checkLastRefresh(GSS){
     var lastTimeRefreshed = GSS.timeStamp;
-    var oneDayLater = lastTimeRefreshed+ '86400'; //86400  is how many seconds there are in a day
-    if (lastTimeRefreshed > oneDayLater){
+    console.log('checking last update');
+    var today = Date.parse(Date());
+    console.log('last update',lastTimeRefreshed);
+    console.log('today', today);
+    if (lastTimeRefreshed+86400 < today){
+        console.log('refreshing');
         refreshing = true;
         oldSongIDs = GSS.SongIDs.slice();
-        getRSS(GSS.feedUrl);
+        oldSongs = GSS.songs.slice();
+
+        getRSS(GSS.feedUrl, refreshing);
     }
 }
 
@@ -77,10 +85,11 @@ function makeComparable(name){
     return name;
 }
 
-function getRSS(rssURL){
+function getRSS(rssURL, refreshing){
     GSS = {};
     GSS.songs = [];
     GSS.SongIDs = [];
+    GSS.refreshing = false;
     var delimiter = '|#|';
     $.getJSON('https://ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=1300&key=ABQIAAAAuIlbOmUd3gJTNVDSvX8ZBBThVXKRlugNJ0FXtFSdeFPX98YKrhQMO67lQJHw2mO0gu2r-chAP3vHeg&q='+rssURL+'&callback=?', function(resp){
         //console.log(resp);
@@ -95,8 +104,17 @@ function getRSS(rssURL){
 
         //This will be used to check for updates
         GSS.songs = [RSS.feedUrl, GSS.title].concat(RSS.entries.map(function(song){return song.title})).join(delimiter);
+        console.log('asdfsdaf', refreshing);
         if(refreshing){
-            (oldSongs == GSS.songs) ? refreshing=true : refreshing=false;
+            if(oldSongs == GSS.songs){
+                console.log('there were no updates');
+                GSS.refreshing=false;
+                refreshing=false;
+                return;
+            }else{
+                GSS.refreshing=true;
+                refreshing=true;
+            }
         }
 
         if (RSS.entries.length == 0){
@@ -194,17 +212,20 @@ function checkLastResult(){
     //load this when The search has finished
     if(RSS.songs.length == RSS.entries.length){
         console.log('done');
-        if (refreshing){
-            refreshPlaylist();
+        console.log('rasdfadsf', GSS.refreshing);
+        if (GSS.refreshing){
+            console.log('refreshing the playlist after searching everything');
+            addToRSSPlaylist(arrayDiff(oldSongIDs, GSS.SongIDs));
         }else{
             createRSSPlaylist();
+        
+            $("#GSSfinishedBox").fadeIn();
+            setTimeout(function(){
+                clearLoadingIcon();
+                $('#gss_dropdown').toggle();
+                $('#GSS').toggleClass('active');
+            }, 1000);
         }
-        $("#GSSfinishedBox").fadeIn();
-        setTimeout(function(){
-            clearLoadingIcon();
-            $('#gss_dropdown').toggle();
-            $('#GSS').toggleClass('active');
-        }, 1000);
     }
 }
 
@@ -240,6 +261,7 @@ function addToRSSPlaylist(SongIDs){
     for (var i=0; i<SongIDs.length; i++){
         GS.service.playlistAddSongToExisting(GSS.title, SongIDs[i],function(){console.log('Finished refreshing playlist')},null);
     }
+
     console.log('There were', SongIDs.length, 'new updates to', GSS.title);
 }
 
@@ -269,9 +291,6 @@ function injectRSSPlaylist(GSSinfo){
 
 //This will read the rss entries from local storage and see if there has been a change, if so it will update the playlist
 
-function refreshPlaylist(){
-    addToRSSPlaylist(arrayDiff(oldSongIDs, GSS.SongIDs));
-}
 
 function updatePlaylist(playlistID, rssTitle, rssURL){
     removePlaylist(playlistID, rssTitle);
