@@ -9,10 +9,9 @@
         , 'setup': false
         , 'construct': construct
         , 'destruct': destruct
+        , 'buildArray': buildArraySearchTerms
     };
 
-
-injectMenu()
 
 function construct(){
     
@@ -37,7 +36,7 @@ function checkExistingFeeds(){
         GSSFeeds = JSON.parse(localStorage['GSSFeeds'])
         for (var i=0; i < GSSFeeds.length; i++){
             injectRSSPlaylist(GSSFeeds[i]);
-            checkLastRefresh(GSSFeeds[i]);
+            //checkLastRefresh(GSSFeeds[i]);
             GSSFeeds[i].timeStamp=Date.parse(Date());
         }
         localStorage['GSSFeeds'] = JSON.stringify(GSSFeeds);
@@ -74,6 +73,7 @@ function arrayDiff(oldarray, newarray){
 
 
 function makeComparable(name){
+    try {
     name.replace('&amp','&');
     name = name.toLowerCase();
     //remove stuff paranthetical information
@@ -81,7 +81,10 @@ function makeComparable(name){
 
     //remove ' 
     name = name.replace("'", "");
-
+    }  catch (err) {
+        console.error("couldn't print",name);
+        return;
+    }
     return name;
 }
 
@@ -91,51 +94,61 @@ function getRSS(rssURL, refreshing){
     GSS.SongIDs = [];
     GSS.refreshing = false;
     var delimiter = '|#|';
-    $.getJSON('https://ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=1300&key=ABQIAAAAuIlbOmUd3gJTNVDSvX8ZBBThVXKRlugNJ0FXtFSdeFPX98YKrhQMO67lQJHw2mO0gu2r-chAP3vHeg&q='+rssURL+'&callback=?', function(resp){
-        //console.log(resp);
-        try {
-            RSS = resp.responseData.feed;
-        } catch (err) {
-            clearLoadingIcon();
-        }
-        RSS.songs = [];
-        GSS.title = RSS.title;
-        GSS.feedUrl = RSS.feedUrl;
-
-        //This will be used to check for updates
-        GSS.songs = [RSS.feedUrl, GSS.title].concat(RSS.entries.map(function(song){return song.title})).join(delimiter);
-        console.log('asdfsdaf', refreshing);
-        if(refreshing){
-            if(oldSongs == GSS.songs){
-                console.log('there were no updates');
-                GSS.refreshing=false;
-                refreshing=false;
-                return;
-            }else{
-                GSS.refreshing=true;
-                refreshing=true;
+    if(rssURL.indexOf('Array') != -1){
+        buildArraySearchTerms(rssURL);
+        return false;
+    }else{
+        $.getJSON('https://ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=1300&key=ABQIAAAAuIlbOmUd3gJTNVDSvX8ZBBThVXKRlugNJ0FXtFSdeFPX98YKrhQMO67lQJHw2mO0gu2r-chAP3vHeg&q='+rssURL+'&callback=?', function(resp){
+            //console.log(resp);
+            try {
+                RSS = resp.responseData.feed;
+            } catch (err) {
+                clearLoadingIcon();
             }
-        }
+            RSS.songs = [];
+            GSS.title = RSS.title;
+            GSS.feedUrl = RSS.feedUrl;
 
-        if (RSS.entries.length == 0){
-            console.log('invalid');
-            clearLoadingIcon();
-        }
-        urlMapper();
-    })
+            //This will be used to check for updates
+            GSS.songs = [RSS.feedUrl, GSS.title].concat(RSS.entries.map(function(song){return song.title})).join(delimiter);
+            console.log('asdfsdaf', refreshing);
+            if(refreshing){
+                if(oldSongs == GSS.songs){
+                    console.log('there were no updates');
+                    GSS.refreshing=false;
+                    refreshing=false;
+                    return;
+                }else{
+                    GSS.refreshing=true;
+                    refreshing=true;
+                }
+            }
+
+            if (RSS.entries.length == 0){
+                console.log('invalid');
+                clearLoadingIcon();
+            }
+            urlMapper();
+        })
+    }
 }
 
 function urlMapper(){
     var url = RSS.feedUrl;
 
     if(url.indexOf('hypem') != -1){
-        buildHypeMSearchTerms();
         GSS.favicon = 'http://hypem.com/favicon.png';
+        buildHypeMSearchTerms();
         return;
     } else if(url.indexOf('itunes') != -1) {
         console.log('itunes feed detected');
         GSS.favicon = 'http://www.wolframcdn.com/navigation/favicon/a/apple_com.png';
         buildiTunesSearchTerms();
+        return;
+    } else if(url.indexOf('Pitchfork') != -1) {
+        console.log('pitchfork feed detected');
+        GSS.favicon = 'http://pitchfork.com/favicon.ico';
+        buildHypeMSearchTerms();
         return;
     } else {
         console.log("I don't recognize this source, so we'll do it live!");
@@ -175,6 +188,38 @@ function buildiTunesSearchTerms(){
 	}
 }
 
+function buildArraySearchTerms(array){
+    try {
+        var jsonTerms = JSON.parse(array);
+        GSS={};
+        GSS.SongIDs = [];
+        GSS.title = jsonTerms.title;
+
+        RSS={};
+        RSS.songs=[];
+    }catch(err){
+        console.error("This wasn't properly formatted JSON")
+        clearLoadingIcon();
+        return;
+    }
+    if(array.indexOf('InvArray') != -1){
+        var searchTerms = [];
+        jsonTerms = jsonTerms.InvArray;
+        RSS.entries = jsonTerms;
+        for(var i=0; i<jsonTerms.length; i++){
+            var swapingPlaces = jsonTerms[i].InvArray;
+            swapingPlaces[1] = swapingPlaces.splice(0, 1, swapingPlaces[1])[0];
+            searchTerms.push(swapingPlaces)
+        }
+        console.log(searchTerms);
+        searchForTerms(searchTerm);
+    }else{
+        jsonTerms = jsonTerms.Array;
+        RSS.entries = jsonTerms;
+        console.log(jsonTerms);
+        searchForTerms(jsonTerms);
+    }
+}
 
 
 //searchTerms is an array of two item arrays. The first term in the sub array is the artist the second term is the song name
