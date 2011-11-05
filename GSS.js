@@ -1,3 +1,5 @@
+//this is meant to work with Grooveshark Enhancement Suite
+//Can also work without it
 ;(function(modules) {
 
     modules['GSS'] = {
