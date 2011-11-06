@@ -78,7 +78,7 @@ function makeComparable(name){
     try {
     name.replace('&amp','&');
     name = name.toLowerCase();
-    //remove stuff paranthetical information
+    //remove paranthetical information
     name = name.replace(/ *\([^)]*\) */g, "");
 
     //remove ' 
@@ -111,21 +111,6 @@ function getRSS(rssURL, refreshing){
             GSS.title = RSS.title;
             GSS.feedUrl = RSS.feedUrl;
 
-            //This will be used to check for updates
-            GSS.songs = [RSS.feedUrl, GSS.title].concat(RSS.entries.map(function(song){return song.title})).join(delimiter);
-            console.log('asdfsdaf', refreshing);
-            if(refreshing){
-                if(oldSongs == GSS.songs){
-                    console.log('there were no updates');
-                    GSS.refreshing=false;
-                    refreshing=false;
-                    return;
-                }else{
-                    GSS.refreshing=true;
-                    refreshing=true;
-                }
-            }
-
             if (RSS.entries.length == 0){
                 console.log('invalid');
                 clearLoadingIcon();
@@ -135,6 +120,7 @@ function getRSS(rssURL, refreshing){
     }
 }
 
+//map the rss feed url to a specific method of parsing the feed
 function urlMapper(){
     var url = RSS.feedUrl;
 
@@ -160,6 +146,7 @@ function urlMapper(){
     }
 }
 
+//parser for hypem or hypem-like feeds
 function buildHypeMSearchTerms(){
     var entries = RSS.entries;
     for (var i=0; i<RSS.entries.length; i++){
@@ -174,6 +161,7 @@ function buildHypeMSearchTerms(){
 	}
 }
 
+//Parser for itunes feed
 function buildiTunesSearchTerms(){
     var entries = RSS.entries;
     for (var i=0; i<RSS.entries.length; i++){
@@ -190,6 +178,8 @@ function buildiTunesSearchTerms(){
 	}
 }
 
+//Experimental feature that allows for mass searching on GS
+//using a JSON array
 function buildArraySearchTerms(array){
     try {
         var jsonTerms = JSON.parse(array);
@@ -200,6 +190,7 @@ function buildArraySearchTerms(array){
         RSS={};
         RSS.songs=[];
     }catch(err){
+        //if it is the correct song lets store the song ids in here
         console.error("This wasn't properly formatted JSON")
         clearLoadingIcon();
         return;
@@ -226,29 +217,30 @@ function buildArraySearchTerms(array){
 
 //searchTerms is an array of two item arrays. The first term in the sub array is the artist the second term is the song name
 function searchForTerms(searchTerms){
+    //just another way to iterate through each term
 	searchTerms.map(function(term){
+        //create the search term that will be fed into GS.service. It goes along the lines of song:songname artist:artistname
         searchTerm = ('song:'+makeComparable(term[1]) + ' ' + 'artist:' + makeComparable(term[0]));
         GS.service.getSearchResultsEx(searchTerm, true, null, function(resp){
-            //console.log(searchTerm);
-            //console.log(resp.result);
             RSS.songs.push({'artist':makeComparable(term[0]), 'songname':makeComparable(term[1]), 'results':resp.result, songInfo:''});
+            //now lets check the result of the search to make sure that we got the same song that was in the rss feed
             checkLastResult();
         }, null)
 	});
 }
 
 function checkLastResult(){
-    var song = RSS.songs[RSS.songs.length-1];
+    var song = RSS.songs[RSS.songs.length-1]; //get the last thing we put in
+    //iterate through all of the results we found in the search
     for (var resultIndex = 0; resultIndex<song.results.length; resultIndex++){
         var result = song.results[resultIndex]; 
-        //console.log(makeComparable(result.ArtistName) , makeComparable(song.artist));
-        //console.log(makeComparable(result.SongName) , makeComparable(song.songname));
+        changeLoadingPercent((RSS.songs.length/RSS.entries.length)*100);
 
-        changeLoadingPercent((RSS.songs.length/RSS.entries.length)*100)
-
+        //only if the song name and the artist name are the same from the search and the rss feed.
         if((makeComparable(result.ArtistName) == makeComparable(song.artist)) && (makeComparable(result.SongName) == makeComparable(song.songname)) ){
             console.log('found the correct result and it is' + result.SongID);
             song.songInfo = result;
+            //if it is the correct song lets store the song ids in here
             GSS.SongIDs.push(result.SongID);
             break;
         }else{
@@ -294,10 +286,10 @@ function createRSSPlaylist(){
         GSS.timeStamp = Date.parse(Date());
         injectRSSPlaylist(GSS);
 
+        //the name doesn't matter so an arbitrary name LoLoLoL was chosen
         location.hash = "#/playlist/LoLoLoL/"+playlistID;
 
-        //use local storage
-        
+        //use local storage to store the GSS feeds
         //push the GSS into the GSSFeeds
         GSSFeeds.push(GSS);
         localStorage['GSSFeeds'] = JSON.stringify(GSSFeeds);
@@ -344,6 +336,7 @@ function updatePlaylist(playlistID, rssTitle, rssURL){
     getRSS(rssURL);
 }
 
+//Function to inject the button for grooveshark
 function injectMenu(){
     checkExistingFeeds();
     var style = document.createElement('style');
@@ -363,7 +356,6 @@ function injectMenu(){
     syncMenu =  '<li class="last">';
     syncMenu += '<div id="GSS" class="btn btn_style1"><span id="gss_label">GSS</span></div>';
     syncMenu += '<div id="gss_dropdown" class="dropdown right">';
-    syncMenu += '   <div id="gss_synced">Synced with group <span id="gs_group"></span><a id="gss_leave">Leave group</a></div>';
     syncMenu += '   <form id="gss_join">';
     syncMenu += '       <label for="groupID">Add an RSS feed: </label><input type="text" name="groupID" />';
     syncMenu += '   </form>';
@@ -392,16 +384,10 @@ function changeLoadingPercent(loadingPecent){
 
 
 function removePlaylist(playlistID, titleToBeRemoved){
-     var delimiter = '|#|';
-     //find the title of the removed feed
-
      //remove the playlist from Grooveshark
      GS.service.deletePlaylist(playlistID, titleToBeRemoved, null, null);
 
      //remove the title from the localStorage
-
-     var indexOfTitleToBeRemoved = -1;
-
      for (var i = 0; i<GSSFeeds.length; i++){
          if (GSSFeeds[i].title = titleToBeRemoved){
              indexOfTitleToBeRemoved = i;
