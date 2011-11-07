@@ -7,7 +7,7 @@
 // @include         http://grooveshark.com/*
 // ==/UserScript==
 
-var SERVER = 'https://raw.github.com/MarcoPolo/rssPlugin/master';
+var SERVER = 'http://127.0.0.1';
 
 console.log('hello');
 
@@ -17,6 +17,6 @@ function injectScript(scriptUrl) {
 	document.body.appendChild(script);
 }
 
-setTimeout(function (){injectScript(SERVER + '/GSS.js')}, 4000);
+setTimeout(function (){injectScript(SERVER + '/GSS.js')}, 8000);
 
 

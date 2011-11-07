@@ -1,19 +1,6 @@
-//this is meant to work with Grooveshark Enhancement Suite
-//Can also work without it
-;(function(modules) {
+var googleFeedsApi='https://ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=1300&key=ABQIAAAAuIlbOmUd3gJTNVDSvX8ZBBThVXKRlugNJ0FXtFSdeFPX98YKrhQMO67lQJHw2mO0gu2r-chAP3vHeg&q='
 
-    modules['GSS'] = {
-          'author': 'Marco Munizaga'
-        , 'name': 'Grooveshark RSS'
-        , 'description': 'Import RSS feeds into Grooveshark'
-        , 'isEnabled': true
-        , 'style': false
-        , 'setup': false
-        , 'construct': construct
-        , 'destruct': destruct
-        , 'buildArray': buildArraySearchTerms
-    };
-
+construct()
 
 function construct(){
     
@@ -38,43 +25,15 @@ function checkExistingFeeds(){
         GSSFeeds = JSON.parse(localStorage['GSSFeeds'])
         for (var i=0; i < GSSFeeds.length; i++){
             injectRSSPlaylist(GSSFeeds[i]);
-            //checkLastRefresh(GSSFeeds[i]);
-            GSSFeeds[i].timeStamp=Date.parse(Date());
         }
-        localStorage['GSSFeeds'] = JSON.stringify(GSSFeeds);
     } else {
         GSSFeeds = [];
     }
 }
 
-function checkLastRefresh(GSS){
-    var lastTimeRefreshed = GSS.timeStamp;
-    console.log('checking last update');
-    var today = Date.parse(Date());
-    console.log('last update',lastTimeRefreshed);
-    console.log('today', today);
-    if (lastTimeRefreshed+86400 < today){
-        console.log('refreshing');
-        refreshing = true;
-        oldSongIDs = GSS.SongIDs.slice();
-        oldSongs = GSS.songs.slice();
-
-        getRSS(GSS.feedUrl, refreshing);
-    }
-}
-
-function arrayDiff(oldarray, newarray){
-    var diffarray = [];
-    for(i = 0; i<newarray.length; i++){
-        if (oldarray.indexOf(newarray[i]) == -1){
-            diffarray.push(newarray[i]);
-        }
-    }
-    return newarray;
-}
-
 
 function makeComparable(name){
+    //function to faciliate the comparison
     try {
     name.replace('&amp','&');
     name = name.toLowerCase();
@@ -100,8 +59,7 @@ function getRSS(rssURL, refreshing){
         buildArraySearchTerms(rssURL);
         return false;
     }else{
-        $.getJSON('https://ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=1300&key=ABQIAAAAuIlbOmUd3gJTNVDSvX8ZBBThVXKRlugNJ0FXtFSdeFPX98YKrhQMO67lQJHw2mO0gu2r-chAP3vHeg&q='+rssURL+'&callback=?', function(resp){
-            //console.log(resp);
+        $.getJSON(googleFeedsApi+rssURL+'&callback=?', function(resp){
             try {
                 RSS = resp.responseData.feed;
             } catch (err) {
@@ -251,7 +209,6 @@ function checkLastResult(){
     //load this when The search has finished
     if(RSS.songs.length == RSS.entries.length){
         console.log('done');
-        console.log('rasdfadsf', GSS.refreshing);
         if (GSS.refreshing){
             console.log('refreshing the playlist after searching everything');
             addToRSSPlaylist(arrayDiff(oldSongIDs, GSS.SongIDs));
@@ -280,7 +237,6 @@ function clearLoadingIcon() {
 function createRSSPlaylist(){
 
     GS.service.createPlaylist(GSS.title, GSS.SongIDs, '', function(result, req){
-        console.log('result',result, 'req',req);
         var playlistID=result;
         GSS.playlistID = playlistID;
         GSS.timeStamp = Date.parse(Date());
@@ -294,14 +250,6 @@ function createRSSPlaylist(){
         GSSFeeds.push(GSS);
         localStorage['GSSFeeds'] = JSON.stringify(GSSFeeds);
     },null);
-}
-
-function addToRSSPlaylist(SongIDs){
-    for (var i=0; i<SongIDs.length; i++){
-        GS.service.playlistAddSongToExisting(GSS.title, SongIDs[i],function(){console.log('Finished refreshing playlist')},null);
-    }
-
-    console.log('There were', SongIDs.length, 'new updates to', GSS.title);
 }
 
 function injectRSSPlaylist(GSSinfo){
@@ -415,5 +363,4 @@ function injectRemoveFeed(playlistID){
      });
 }
 
-})(ges.modules.modules);
 
