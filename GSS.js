@@ -1,7 +1,11 @@
+//This file defines variables and is the basis for the rest of the code
+
+
 var googleFeedsApi='https://ajax.googleapis.com/ajax/services/feed/load?v=1.0&num=1300&key=ABQIAAAAuIlbOmUd3gJTNVDSvX8ZBBThVXKRlugNJ0FXtFSdeFPX98YKrhQMO67lQJHw2mO0gu2r-chAP3vHeg&q='
 
 construct()
 
+//function to build the plugin on the site
 function construct(){
     
     if (typeof localStorage['GSSFeeds'] == 'undefined') {
@@ -18,6 +22,7 @@ function destruct(){
 
 
 
+//Check local storage to see if we have any playlist saved
 function checkExistingFeeds(){
     //gssfeeds is an array of RSS titles
     refreshing = false; //by default we are not refreshing any playlist
@@ -32,8 +37,8 @@ function checkExistingFeeds(){
 }
 
 
+//function to faciliate the comparison
 function makeComparable(name){
-    //function to faciliate the comparison
     try {
     name.replace('&amp','&');
     name = name.toLowerCase();
@@ -49,6 +54,10 @@ function makeComparable(name){
     return name;
 }
 
+//function to fetch the data from the RSS feed
+//In order to avoid the problem with Access-Control-Allow-Origin
+//Google feeds api is used to proxy the information.
+//Google feeds allows formats the XML into JSON, NICE!
 function getRSS(rssURL, refreshing){
     GSS = {};
     GSS.songs = [];
@@ -63,6 +72,7 @@ function getRSS(rssURL, refreshing){
             try {
                 RSS = resp.responseData.feed;
             } catch (err) {
+                //something went wrong and we didn't get data, so lets clean everything up again
                 clearLoadingIcon();
             }
             RSS.songs = [];
@@ -77,6 +87,14 @@ function getRSS(rssURL, refreshing){
         })
     }
 }
+
+
+//The code here deals with:
+//mapping the rss url to a specific parser
+//parsing the rss feed
+//experimental support for JSON list of artist and songnames 
+
+
 
 //map the rss feed url to a specific method of parsing the feed
 function urlMapper(){
@@ -136,8 +154,7 @@ function buildiTunesSearchTerms(){
 	}
 }
 
-//Experimental feature that allows for mass searching on GS
-//using a JSON array
+//Experimental feature that allows for mass searching on GS using a JSON Array
 function buildArraySearchTerms(array){
     try {
         var jsonTerms = JSON.parse(array);
@@ -153,6 +170,7 @@ function buildArraySearchTerms(array){
         clearLoadingIcon();
         return;
     }
+    //if the array is inverted
     if(array.indexOf('InvArray') != -1){
         var searchTerms = [];
         jsonTerms = jsonTerms.InvArray;
@@ -171,6 +189,10 @@ function buildArraySearchTerms(array){
         searchForTerms(jsonTerms);
     }
 }
+
+//This file contains the functions that directly access grooveshark (GS.service) 
+//Also inside is the checkLastResult function that doesn't access GS directly, but is included for readablility
+
 
 
 //searchTerms is an array of two item arrays. The first term in the sub array is the artist the second term is the song name
@@ -209,31 +231,18 @@ function checkLastResult(){
     //load this when The search has finished
     if(RSS.songs.length == RSS.entries.length){
         console.log('done');
-        if (GSS.refreshing){
-            console.log('refreshing the playlist after searching everything');
-            addToRSSPlaylist(arrayDiff(oldSongIDs, GSS.SongIDs));
-        }else{
-            createRSSPlaylist();
-        
-            $("#GSSfinishedBox").fadeIn();
-            setTimeout(function(){
-                clearLoadingIcon();
-                $('#gss_dropdown').toggle();
-                $('#GSS').toggleClass('active');
-            }, 1000);
-        }
+        createRSSPlaylist();
+    
+        $("#GSSfinishedBox").fadeIn();
+        setTimeout(function(){
+            clearLoadingIcon();
+            $('#gss_dropdown').toggle();
+            $('#GSS').toggleClass('active');
+        }, 1000);
     }
 }
 
-function clearLoadingIcon() {
-    //$('#GSSloading').remove();
-    $('#GSSfinishedBox').remove();
-    $('#GSSloadingBox').remove();
-
-    $('#gss_join input').val('');
-    $('#gss_join input').show();
-}
-
+//creates the playlist on the backend of GS
 function createRSSPlaylist(){
 
     GS.service.createPlaylist(GSS.title, GSS.SongIDs, '', function(result, req){
@@ -251,6 +260,28 @@ function createRSSPlaylist(){
         localStorage['GSSFeeds'] = JSON.stringify(GSSFeeds);
     },null);
 }
+
+function removePlaylist(playlistID, titleToBeRemoved){
+     //remove the playlist from Grooveshark
+     GS.service.deletePlaylist(playlistID, titleToBeRemoved, null, null);
+
+     //remove the title from the localStorage
+     for (var i = 0; i<GSSFeeds.length; i++){
+         if (GSSFeeds[i].title = titleToBeRemoved){
+             indexOfTitleToBeRemoved = i;
+             break
+         }
+     }
+
+     if (indexOfTitleToBeRemoved != -1) {
+         console.log('removing', titleToBeRemoved);
+         GSSFeeds.splice(indexOfTitleToBeRemoved, 1);
+         localStorage['GSSFeeds'] = JSON.stringify(GSSFeeds);
+     } else {
+         console.error('could not find the title in the local storage')
+     }
+}
+//This file contains all the function that pertain to styling and visual elements of the plugin
 
 function injectRSSPlaylist(GSSinfo){
     var playlistID = GSSinfo.playlistID;
@@ -278,11 +309,6 @@ function injectRSSPlaylist(GSSinfo){
 
 //This will read the rss entries from local storage and see if there has been a change, if so it will update the playlist
 
-
-function updatePlaylist(playlistID, rssTitle, rssURL){
-    removePlaylist(playlistID, rssTitle);
-    getRSS(rssURL);
-}
 
 //Function to inject the button for grooveshark
 function injectMenu(){
@@ -330,26 +356,12 @@ function changeLoadingPercent(loadingPecent){
     $('#GSSloadingBar').css('width',225*(.01)*loadingPecent);
 }
 
+function clearLoadingIcon() {
+    $('#GSSfinishedBox').remove();
+    $('#GSSloadingBox').remove();
 
-function removePlaylist(playlistID, titleToBeRemoved){
-     //remove the playlist from Grooveshark
-     GS.service.deletePlaylist(playlistID, titleToBeRemoved, null, null);
-
-     //remove the title from the localStorage
-     for (var i = 0; i<GSSFeeds.length; i++){
-         if (GSSFeeds[i].title = titleToBeRemoved){
-             indexOfTitleToBeRemoved = i;
-             break
-         }
-     }
-
-     if (indexOfTitleToBeRemoved != -1) {
-         console.log('removing', titleToBeRemoved);
-         GSSFeeds.splice(indexOfTitleToBeRemoved, 1);
-         localStorage['GSSFeeds'] = JSON.stringify(GSSFeeds);
-     } else {
-         console.error('could not find the title in the local storage')
-     }
+    $('#gss_join input').val('');
+    $('#gss_join input').show();
 }
 
 function injectRemoveFeed(playlistID){
@@ -362,5 +374,3 @@ function injectRemoveFeed(playlistID){
          $(this).parent().remove();
      });
 }
-
-
